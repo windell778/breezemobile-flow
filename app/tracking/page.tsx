@@ -10,9 +10,9 @@ export default function TrackingPage() {
       title="Tracking Health"
       description="Contrato tecnico de la V0: eventos, servicios, campos disponibles y limites explicitos de lo que la interfaz puede afirmar."
     >
-      <section className="grid gap-4 md:grid-cols-2">
+      <section className="grid gap-3 md:grid-cols-2">
         {trackingHealth.map((item) => (
-          <article key={item.id} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <article key={item.id} className="bf-panel p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{item.area}</p>
@@ -21,12 +21,12 @@ export default function TrackingPage() {
               <StatusBadge label={item.severity} />
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-600">{item.detail}</p>
-            <p className="mt-3 rounded-lg bg-slate-50 p-3 text-sm leading-6 text-slate-600">{item.recommendation}</p>
+            <p className="mt-3 rounded-md bg-slate-50 p-3 text-sm leading-6 text-slate-600">{item.recommendation}</p>
           </article>
         ))}
       </section>
 
-      <section className="mt-6 grid gap-4 xl:grid-cols-3">
+      <section className="mt-4 grid gap-3 xl:grid-cols-3">
         <Panel title="Eventos dataLayer / PostHog">
           {eventTypes.map((eventName) => <CodePill key={eventName} label={`${eventLabels[eventName]} (${eventName})`} />)}
         </Panel>
@@ -38,11 +38,11 @@ export default function TrackingPage() {
         </Panel>
       </section>
 
-      <section className="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="bf-panel mt-4 p-4">
         <h2 className="text-lg font-semibold text-slate-950">Campos disponibles</h2>
         <div className="mt-4 flex flex-wrap gap-2">
           {trackingFields.map((field) => (
-            <span key={field} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+            <span key={field} className="bf-chip bg-slate-50 text-slate-600">
               {humanField(field)} <span className="font-mono text-slate-400">({field})</span>
             </span>
           ))}
@@ -54,7 +54,7 @@ export default function TrackingPage() {
 
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="bf-panel p-4">
       <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
       <div className="mt-4 flex flex-wrap gap-2">{children}</div>
     </div>
@@ -62,5 +62,5 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function CodePill({ label }: { label: string }) {
-  return <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">{label}</span>;
+  return <span className="bf-chip bg-slate-50 text-slate-600">{label}</span>;
 }

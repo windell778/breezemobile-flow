@@ -43,11 +43,11 @@ export default async function VisitorPage({ params, searchParams }: PageProps) {
       title={`Visitor Intelligence: ${visitorId}`}
       description="Expediente de comportamiento anonimo: sesiones, replay, journey, eventos, atribucion y payload tecnico."
     >
-      <Link href="/sesiones" className="mb-4 inline-flex rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+      <Link href="/sesiones" className="bf-control mb-4 bg-white text-slate-700 hover:bg-slate-50">
         Volver a sesiones
       </Link>
 
-      <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3 xl:grid-cols-6">
+      <section className="bf-panel grid gap-2 p-3 md:grid-cols-3 xl:grid-cols-6">
         <HeaderStat label="Ultima actividad" value={formatDateTime(summary.last.timestamp)} />
         <HeaderStat label="Servicio principal" value={humanValue(summary.primaryService)} />
         <HeaderStat label="Fuente inicial" value={summary.firstSource} />
@@ -56,13 +56,13 @@ export default async function VisitorPage({ params, searchParams }: PageProps) {
         <HeaderStat label="Estado" value={summary.state} />
       </section>
 
-      <nav className="mt-5 flex flex-wrap gap-2">
+      <nav className="mt-4 flex flex-wrap gap-2">
         {tabs.map(([key, label]) => (
           <Link
             key={key}
             href={tabHref(key)}
-            className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
-              activeTab === key ? "border-cyan-300 bg-cyan-50 text-cyan-800" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+            className={`bf-chip ${
+              activeTab === key ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
             }`}
           >
             {label}
@@ -70,7 +70,7 @@ export default async function VisitorPage({ params, searchParams }: PageProps) {
         ))}
       </nav>
 
-      <section className="mt-5">
+      <section className="bf-defer mt-4">
         {activeTab === "resumen" ? <SummaryTab sessions={visitorSessions} activeSession={activeSession} visitorId={visitorId} /> : null}
         {activeTab === "grabaciones" ? <RecordingsTab sessions={visitorSessions} visitorId={visitorId} activeSessionId={activeSession.session_id} /> : null}
         {activeTab === "journey" ? <JourneyTab sessions={visitorSessions} /> : null}
@@ -85,7 +85,7 @@ export default async function VisitorPage({ params, searchParams }: PageProps) {
 
 function HeaderStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+    <div className="rounded-md border border-slate-200 bg-slate-50 p-2.5">
       <p className="text-xs font-medium text-slate-500">{label}</p>
       <p className="mt-1 break-words text-sm font-semibold text-slate-950">{value}</p>
     </div>
@@ -97,7 +97,7 @@ function SummaryTab({ sessions, activeSession, visitorId }: { sessions: ReturnTy
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
-      <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="bf-panel p-4">
         <h2 className="text-lg font-semibold text-slate-950">Que sabemos</h2>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           Este visitante tiene {sessions.length} sesiones registradas. La sesion seleccionada es {activeSession.session_id}, con origen {activeSession.source} y servicio {humanValue(activeSession.service)}.
@@ -109,7 +109,7 @@ function SummaryTab({ sessions, activeSession, visitorId }: { sessions: ReturnTy
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="bf-panel p-4">
         <h2 className="text-lg font-semibold text-slate-950">Sesion seleccionada</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <KeyValue label="Pagina" value={activeSession.page_path} />
@@ -118,17 +118,17 @@ function SummaryTab({ sessions, activeSession, visitorId }: { sessions: ReturnTy
           <KeyValue label="Duracion" value={activeSession.duration} />
         </div>
         {activeSession.recording.available ? (
-          <Link href={`/visitantes/${visitorId}?session=${activeSession.session_id}&tab=grabaciones`} className="mt-4 inline-flex rounded-lg bg-cyan-700 px-3 py-2 text-sm font-medium text-white">
+          <Link href={`/visitantes/${visitorId}?session=${activeSession.session_id}&tab=grabaciones`} className="bf-control mt-4 border-slate-950 bg-slate-950 text-white hover:bg-slate-800">
             Abrir grabacion
           </Link>
         ) : null}
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
+      <div className="bf-panel p-4 xl:col-span-2">
         <h2 className="text-lg font-semibold text-slate-950">Ultimos eventos importantes</h2>
         <div className="mt-4 space-y-2">
           {importantEvents.length ? importantEvents.map((event) => (
-            <div key={event.event_id} className="grid gap-2 rounded-lg border border-slate-200 p-3 text-sm md:grid-cols-[180px_1fr_1fr]">
+            <div key={event.event_id} className="grid gap-2 rounded-md border border-slate-200 p-2.5 text-sm md:grid-cols-[180px_1fr_1fr]">
               <span className="text-slate-500">{formatDateTime(event.timestamp)}</span>
               <span className="font-medium text-slate-950">{eventLabels[event.event_name]}</span>
               <span className="text-slate-600">{event.cta_text || event.page_path}</span>
@@ -145,15 +145,15 @@ function RecordingsTab({ sessions, visitorId, activeSessionId }: { sessions: Ret
 
   return (
     <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr]">
-      <div>{featured ? <ReplayPreview session={featured} /> : <div className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-500">Este visitante no tiene grabaciones disponibles.</div>}</div>
-      <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div>{featured ? <ReplayPreview session={featured} /> : <div className="bf-panel p-4 text-sm text-slate-500">Este visitante no tiene grabaciones disponibles.</div>}</div>
+      <div className="bf-panel p-4">
         <h2 className="text-lg font-semibold text-slate-950">Grabaciones del visitante</h2>
         <div className="mt-4 space-y-3">
           {sessions.map((session) => (
             <Link
               key={session.session_id}
               href={`/visitantes/${visitorId}?session=${session.session_id}&tab=grabaciones`}
-              className={`block rounded-lg border p-3 ${session.session_id === activeSessionId ? "border-cyan-300 bg-cyan-50" : "border-slate-200 hover:bg-slate-50"}`}
+              className={`block rounded-md border p-2.5 ${session.session_id === activeSessionId ? "border-slate-900 bg-slate-50" : "border-slate-200 hover:bg-slate-50"}`}
             >
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium text-slate-950">Sesion {session.session_id}</p>
@@ -175,12 +175,12 @@ function JourneyTab({ sessions }: { sessions: ReturnType<typeof getVisitorSessio
   ]);
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="bf-panel p-4">
       <h2 className="text-lg font-semibold text-slate-950">Journey</h2>
       <div className="mt-5 space-y-3">
         {steps.map((step, index) => (
-          <div key={step.key} className="grid gap-3 rounded-lg border border-slate-200 p-3 md:grid-cols-[48px_1fr_auto] md:items-center">
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-cyan-50 text-sm font-semibold text-cyan-800">{index + 1}</div>
+          <div key={step.key} className="grid gap-3 rounded-md border border-slate-200 p-2.5 md:grid-cols-[44px_1fr_auto] md:items-center">
+            <div className="grid h-8 w-8 place-items-center rounded-md bg-slate-100 text-sm font-semibold text-slate-800">{index + 1}</div>
             <div>
               <p className="font-medium text-slate-950">{step.title}</p>
               <p className="mt-1 text-sm text-slate-500">Sesion {step.session.session_id} · {step.session.page_path} · {step.detail || humanValue(step.session.service)}</p>
@@ -200,7 +200,7 @@ function SessionsTab({ sessions, visitorId, activeSessionId }: { sessions: Retur
         <Link
           key={session.session_id}
           href={`/visitantes/${visitorId}?session=${session.session_id}&tab=sesiones`}
-          className={`block rounded-lg border bg-white p-4 shadow-sm ${session.session_id === activeSessionId ? "border-cyan-300" : "border-slate-200"}`}
+          className={`bf-panel block p-3 ${session.session_id === activeSessionId ? "border-slate-900" : "border-slate-200"}`}
         >
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-semibold text-slate-950">Sesion {session.session_id}</p>
@@ -218,10 +218,10 @@ function EventsTab({ sessions, activeSessionId }: { sessions: ReturnType<typeof 
   const activeEvents = sessions.flatMap((session) => session.events).filter((event) => event.session_id === activeSessionId);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 bg-cyan-50 px-4 py-3 text-sm font-medium text-cyan-800">Sesion activa: {activeSessionId}</div>
+    <div className="bf-panel overflow-hidden">
+      <div className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800">Sesion activa: {activeSessionId}</div>
       {activeEvents.map((event) => (
-        <div key={event.event_id} className="grid gap-3 border-b border-slate-100 p-4 text-sm md:grid-cols-[180px_1fr_1fr_1fr]">
+        <div key={event.event_id} className="bf-row grid gap-3 px-3 py-2.5 text-sm md:grid-cols-[180px_1fr_1fr_1fr]">
           <span className="text-slate-500">{formatDateTime(event.timestamp)}</span>
           <span className="font-medium text-slate-950">{eventLabels[event.event_name]}</span>
           <span className="text-slate-600">{event.page_path}</span>
@@ -249,11 +249,11 @@ function AttributionTab({ session }: { session: ReturnType<typeof getVisitorSess
 function TechnicalTab({ session }: { session: ReturnType<typeof getVisitorSessions>[number] }) {
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="bf-panel p-4">
         <h2 className="text-lg font-semibold text-slate-950">Tecnico / debug</h2>
         <p className="mt-1 text-sm text-slate-500">Los nombres tecnicos y payloads completos viven aqui para no dominar la experiencia principal.</p>
       </div>
-      <pre className="overflow-auto rounded-lg border border-slate-200 bg-slate-950 p-5 text-xs leading-5 text-slate-100 shadow-sm">
+      <pre className="overflow-auto rounded-md border border-slate-200 bg-slate-950 p-4 text-xs leading-5 text-slate-100 shadow-sm">
         {JSON.stringify(session, null, 2)}
       </pre>
     </div>
@@ -262,7 +262,7 @@ function TechnicalTab({ session }: { session: ReturnType<typeof getVisitorSessio
 
 function KeyValue({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="bf-panel p-3">
       <p className="text-xs font-medium text-slate-500">{label}</p>
       <p className="mt-1 break-words text-sm font-semibold text-slate-950">{value}</p>
     </div>

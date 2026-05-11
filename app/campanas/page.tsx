@@ -1,45 +1,122 @@
+import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { SourceBadge } from "@/components/ui/SourceBadge";
-import { campaignSummaries } from "@/lib/mock-data";
+import { sessions, type Source } from "@/lib/mock-data";
 
-export default function CampanasPage() {
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+type Dimension = "source" | "medium" | "campaign" | "content";
+
+const dimensions: { key: Dimension; label: string; caption: string }[] = [
+  { key: "source", label: "Fuente", caption: "Meta Ads, Google Ads, Organic, Direct" },
+  { key: "medium", label: "Medio", caption: "paid_social, cpc, seo, none" },
+  { key: "campaign", label: "Campana", caption: "utm_campaign" },
+  { key: "content", label: "Anuncio / Creativo", caption: "utm_content o ad_id" },
+];
+
+export default async function CampanasPage({ searchParams }: PageProps) {
+  const params = (await searchParams) || {};
+  const activeDimension = (String(params.dimension || "campaign") as Dimension);
+  const safeDimension = dimensions.some((item) => item.key === activeDimension) ? activeDimension : "campaign";
+  const rows = buildAttributionRows(safeDimension);
+
   return (
     <AppShell
       title="Campanas y fuentes"
-      description="Lectura de fuente, medio, campana y anuncio basada en los datos capturados por sesion."
+      description="Lectura por dimensiones de atribucion, inspirada en los widgets de fuentes de OpenPanel. El foco sigue siendo comportamiento V0, no gasto ni revenue."
     >
-      <section className="grid gap-4">
-        {campaignSummaries.map((campaign) => {
-          const conversionRate = campaign.sessions ? Math.round((campaign.whatsapp_clicks / campaign.sessions) * 100) : 0;
-          return (
-            <article key={`${campaign.source}-${campaign.name}`} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-950">{campaign.name}</h2>
-                  <p className="mt-1 text-sm text-slate-500">{campaign.medium} · {campaign.campaign_id || "sin campaign_id"}</p>
-                </div>
-                <SourceBadge source={campaign.source} />
-              </div>
-              <div className="mt-5 grid gap-3 md:grid-cols-5">
-                <Metric label="Sesiones" value={campaign.sessions} />
-                <Metric label="Page views" value={campaign.page_views} />
-                <Metric label="Service clicks" value={campaign.service_clicks} />
-                <Metric label="WhatsApp clicks" value={campaign.whatsapp_clicks} />
-                <Metric label="Tasa WA" value={`${conversionRate}%`} />
-              </div>
-            </article>
-          );
-        })}
+      <section className="bf-panel p-3">
+        <div className="flex flex-wrap gap-2">
+          {dimensions.map((dimension) => (
+            <Link
+              key={dimension.key}
+              href={`/campanas?dimension=${dimension.key}`}
+              className={`bf-chip ${
+                safeDimension === dimension.key ? "border-slate-900 bg-slate-950 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              {dimension.label}
+            </Link>
+          ))}
+        </div>
+        <p className="mt-3 text-sm text-slate-500">{dimensions.find((item) => item.key === safeDimension)?.caption}</p>
+      </section>
+
+      <section className="bf-panel bf-defer mt-4 overflow-hidden">
+        <div className="grid border-b border-slate-200 bg-slate-50/80 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 md:grid-cols-[1.2fr_120px_120px_140px_120px_120px]">
+          <span>Dimension</span>
+          <span>Fuente</span>
+          <span>Sesiones</span>
+          <span>Service clicks</span>
+          <span>WhatsApp</span>
+          <span>Tasa WA</span>
+        </div>
+        {rows.map((row) => (
+          <article key={row.key} className="bf-row grid gap-3 px-3 py-2.5 text-sm md:grid-cols-[1.2fr_120px_120px_140px_120px_120px] md:items-center">
+            <div>
+              <p className="font-semibold text-slate-950">{row.label}</p>
+              <p className="mt-1 font-mono text-xs text-slate-500">{row.technical || "sin valor tecnico"}</p>
+            </div>
+            <SourceBadge source={row.source} />
+            <span className="font-semibold text-slate-950">{row.sessions}</span>
+            <span className="text-slate-700">{row.serviceClicks}</span>
+            <span className="font-semibold text-blue-700">{row.whatsappClicks}</span>
+            <span className="text-slate-700">
+              {row.rate}%
+              <Link href={`/sesiones?q=${encodeURIComponent(row.label)}`} className="mt-1 block text-xs font-medium text-blue-700 hover:underline">
+                Ver sesiones
+              </Link>
+            </span>
+          </article>
+        ))}
+      </section>
+
+      <section className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">
+        Esta vista no muestra costo por lead todavia. Esa capa debe entrar cuando conectemos Meta Ads y podamos cruzar gasto con eventos reales.
       </section>
     </AppShell>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-slate-950">{value}</p>
-    </div>
-  );
+function getDimensionValue(session: (typeof sessions)[number], dimension: Dimension) {
+  if (dimension === "source") return { label: session.source, technical: session.attribution.utm_source || session.source };
+  if (dimension === "medium") return { label: session.attribution.utm_medium || "none", technical: session.attribution.utm_medium || "" };
+  if (dimension === "content") return { label: session.attribution.utm_content || session.attribution.ad_id || "Sin anuncio", technical: session.attribution.ad_id };
+  return { label: session.attribution.utm_campaign || "Sin campana", technical: session.attribution.campaign_id };
+}
+
+function buildAttributionRows(dimension: Dimension) {
+  const grouped = sessions.reduce<Record<string, {
+    label: string;
+    technical: string;
+    source: Source;
+    sessions: number;
+    serviceClicks: number;
+    whatsappClicks: number;
+  }>>((acc, session) => {
+    const value = getDimensionValue(session, dimension);
+    const key = `${dimension}:${value.label}:${session.source}`;
+    acc[key] ||= {
+      label: value.label,
+      technical: value.technical,
+      source: session.source,
+      sessions: 0,
+      serviceClicks: 0,
+      whatsappClicks: 0,
+    };
+    acc[key].sessions += 1;
+    acc[key].serviceClicks += session.events.filter((event) => event.event_name === "service_click").length;
+    acc[key].whatsappClicks += session.events.filter((event) => event.event_name === "whatsapp_click").length;
+    return acc;
+  }, {});
+
+  return Object.entries(grouped)
+    .map(([key, row]) => ({
+      key,
+      ...row,
+      rate: row.sessions ? Math.round((row.whatsappClicks / row.sessions) * 100) : 0,
+    }))
+    .sort((a, b) => b.whatsappClicks - a.whatsappClicks || b.sessions - a.sessions);
 }

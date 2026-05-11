@@ -8,13 +8,13 @@ export function StatusBadge({ label }: StatusBadgeProps) {
     : label.includes("Media")
       ? "bg-amber-50 text-amber-700 border-amber-200"
       : label.includes("Replay") || label.includes("Grabacion")
-        ? "bg-cyan-50 text-cyan-700 border-cyan-200"
+        ? "bg-blue-50 text-blue-700 border-blue-200"
         : label.includes("Sin")
           ? "bg-rose-50 text-rose-700 border-rose-200"
-          : "bg-slate-100 text-slate-700 border-slate-200";
+          : "bg-slate-50 text-slate-600 border-slate-200";
 
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${style}`}>
+    <span className={`inline-flex items-center rounded-md border px-2 py-1 text-[11px] font-medium leading-none ${style}`}>
       {label}
     </span>
   );
