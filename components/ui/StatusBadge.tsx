@@ -1,18 +1,20 @@
 type StatusBadgeProps = {
-  label: "Alta intención" | "Media intención" | "Baja intención" | "Replay disponible" | "Sin replay";
-};
-
-const styles: Record<StatusBadgeProps["label"], string> = {
-  "Alta intención": "bg-emerald-500/20 text-emerald-200 border-emerald-400/30",
-  "Media intención": "bg-amber-500/20 text-amber-200 border-amber-400/30",
-  "Baja intención": "bg-slate-500/20 text-slate-200 border-slate-400/30",
-  "Replay disponible": "bg-cyan-500/20 text-cyan-200 border-cyan-400/30",
-  "Sin replay": "bg-rose-500/20 text-rose-200 border-rose-400/30",
+  label: string;
 };
 
 export function StatusBadge({ label }: StatusBadgeProps) {
+  const style = label.includes("Alta")
+    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+    : label.includes("Media")
+      ? "bg-amber-50 text-amber-700 border-amber-200"
+      : label.includes("Replay") || label.includes("Grabacion")
+        ? "bg-cyan-50 text-cyan-700 border-cyan-200"
+        : label.includes("Sin")
+          ? "bg-rose-50 text-rose-700 border-rose-200"
+          : "bg-slate-100 text-slate-700 border-slate-200";
+
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${styles[label]}`}>
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${style}`}>
       {label}
     </span>
   );

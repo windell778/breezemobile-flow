@@ -3,10 +3,10 @@ type SourceBadgeProps = {
 };
 
 const sourceStyle: Record<SourceBadgeProps["source"], string> = {
-  "Meta Ads": "bg-blue-500/20 text-blue-100 border-blue-400/30",
-  "Google Ads": "bg-violet-500/20 text-violet-100 border-violet-400/30",
-  Direct: "bg-zinc-500/20 text-zinc-100 border-zinc-400/30",
-  Organic: "bg-teal-500/20 text-teal-100 border-teal-400/30",
+  "Meta Ads": "bg-blue-50 text-blue-700 border-blue-200",
+  "Google Ads": "bg-amber-50 text-amber-700 border-amber-200",
+  Direct: "bg-zinc-100 text-zinc-700 border-zinc-200",
+  Organic: "bg-teal-50 text-teal-700 border-teal-200",
 };
 
 export function SourceBadge({ source }: SourceBadgeProps) {
