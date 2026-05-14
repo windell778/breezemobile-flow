@@ -50,6 +50,9 @@ export type PHRecording = {
   duration: number;        // seconds
   storage: string;
   viewed: boolean;
+  person?: {
+    properties?: Record<string, unknown>;
+  };
 };
 
 export type PHRecordingsResponse = {

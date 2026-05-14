@@ -33,12 +33,12 @@ export async function fetchVisitorRecordings(
   });
 
   return Promise.all(
-    data.results.map(async (rec) => {
-      // Try to find our internal session_id from the recording's events.
-      // breeze-scripts.js registers session_id via posthog.register(),
-      // so it appears as a property on every event including the recording's.
-      // If not available, we fall back to matching by visitor_id + timestamp.
-      const sessionId = await resolveSessionId(client, rec.id, visitorId);
+    (data.results ?? []).map(async (rec) => {
+      // Read session_id from person.properties — set via posthog.register({ session_id }).
+      // Falls back to a detail API call if not present in the list response.
+      const sessionId =
+        String(rec.person?.properties?.session_id ?? "").trim() ||
+        (await resolveSessionId(client, rec.id, visitorId));
 
       const storageKey = await getStorageKey(workspaceId, rec.id);
       return normalizeRecording(rec, workspaceId, sessionId, storageKey);
@@ -56,7 +56,7 @@ export async function fetchSessionRecording(
   const client = new PostHogClient({ projectId, apiKey, host });
 
   // Query recordings that have our session_id as a property.
-  const data = await client.post<PHRecordingsResponse>("/query/", {
+  const data = await client.post<{ results: unknown[][] }>("/query/", {
     query: {
       kind: "HogQLQuery",
       query: `
@@ -69,20 +69,19 @@ export async function fetchSessionRecording(
 
   if (!data.results?.length) return null;
 
-  const recId = String((data.results[0] as Record<string, unknown>).session_id ?? "");
+  const recId = String((data.results[0] as string[])[0] ?? "");
   if (!recId) return null;
 
-  const detail = await client.get<{ result: import("./normalizer").PHRecording }>(
+  const detail = await client.get<{ id: string; distinct_id: string; start_time: string; end_time: string; duration: number; storage: string; viewed: boolean; person?: { properties?: Record<string, unknown> } }>(
     `/session_recordings/${recId}/`,
   );
 
   const storageKey = await getStorageKey(workspaceId, recId);
-  return normalizeRecording(detail.result, workspaceId, sessionId, storageKey);
+  return normalizeRecording(detail, workspaceId, sessionId, storageKey);
 }
 
 // Downloads the rrweb event stream for a recording from PostHog.
-// Returns parsed rrweb events ready for rrweb-player.
-// Called by the webhook handler after a session ends.
+// Handles both the current blob_v2 format and the legacy NDJSON format.
 export async function downloadSnapshots(
   projectId: string,
   apiKey: string,
@@ -90,32 +89,77 @@ export async function downloadSnapshots(
   recordingId: string,
 ): Promise<unknown[]> {
   const client = new PostHogClient({ projectId, apiKey, host });
-  const res = await client.getStream(`/session_recordings/${recordingId}/snapshots/`);
-
-  const text = await res.text();
   const events: unknown[] = [];
 
-  // PostHog returns NDJSON (one JSON object per line).
-  for (const line of text.split("\n")) {
+  const manifestRes = await client.getStream(`/session_recordings/${recordingId}/snapshots/`);
+  const manifestText = await manifestRes.text();
+
+  // PostHog blob_v2 format: manifest is JSON with sources array.
+  // Each source requires a separate blob download.
+  try {
+    const manifest = JSON.parse(manifestText) as {
+      events?: Array<{ sources?: Array<{ source: string; blob_key: string }> }>;
+    };
+    const sources = manifest.events?.[0]?.sources ?? [];
+
+    if (sources.length > 0) {
+      for (const source of sources) {
+        if (source.source === "blob_v2" || source.source === "blob") {
+          try {
+            const blobRes = await client.getStream(
+              `/session_recordings/${recordingId}/snapshots/?source=blob&blob_key=${source.blob_key}`,
+            );
+            const blobText = await blobRes.text();
+            for (const line of blobText.split("\n")) {
+              const trimmed = line.trim();
+              if (!trimmed) continue;
+              try {
+                const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+                const props = parsed?.properties as Record<string, unknown> | undefined;
+                // $snapshot_items format (PostHog's internal re-chunked format)
+                if (Array.isArray(props?.["$snapshot_items"])) {
+                  events.push(...(props["$snapshot_items"] as unknown[]));
+                } else if (Array.isArray(parsed?.data)) {
+                  events.push(...(parsed.data as unknown[]));
+                } else if (parsed?.type !== undefined) {
+                  events.push(parsed);
+                }
+              } catch {
+                // skip malformed line
+              }
+            }
+          } catch (e) {
+            console.warn(`[recordings] blob_v2 download failed for key ${source.blob_key}:`, e);
+          }
+        }
+      }
+      return events;
+    }
+  } catch {
+    // Not blob_v2 JSON — fall through to NDJSON parser
+  }
+
+  // Legacy NDJSON format (one JSON object per line)
+  for (const line of manifestText.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
-      const parsed = JSON.parse(trimmed);
-      // Each line may contain a "data" array of rrweb events.
+      const parsed = JSON.parse(trimmed) as Record<string, unknown>;
       if (Array.isArray(parsed?.data)) {
-        events.push(...parsed.data);
+        events.push(...(parsed.data as unknown[]));
       } else {
         events.push(parsed);
       }
     } catch {
-      // Skip malformed lines silently.
+      // skip malformed line
     }
   }
 
   return events;
 }
 
-// Tries to read session_id from a recording's first event properties.
+// Reads session_id from a recording detail response.
+// The real shape is: { person: { properties: { session_id: "sess_..." } } }
 async function resolveSessionId(
   client: PostHogClient,
   recordingId: string,
@@ -123,13 +167,17 @@ async function resolveSessionId(
 ): Promise<string> {
   try {
     const detail = await client.get<{
-      result: { properties?: Record<string, unknown> };
+      person?: { properties?: Record<string, unknown> };
+      result?: { properties?: Record<string, unknown> };
     }>(`/session_recordings/${recordingId}/`);
-    const sessionId = String(detail.result?.properties?.session_id ?? "");
+    const sessionId = String(
+      detail.person?.properties?.session_id ??
+      detail.result?.properties?.session_id ??
+      "",
+    );
     if (sessionId) return sessionId;
   } catch {
-    // Fall through to fallback.
+    // fall through
   }
-  // Fallback: use visitorId + recordingId as a synthetic key.
   return `${fallbackVisitorId}_${recordingId}`;
 }
