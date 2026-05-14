@@ -105,43 +105,41 @@ export async function downloadSnapshots(
     const sources = manifest.sources ?? manifest.events?.[0]?.sources ?? [];
 
     if (sources.length > 0) {
-      for (const source of sources) {
-        if (source.source === "blob_v2" || source.source === "blob") {
-          try {
-            // Some PostHog plans return a presigned download URL directly in the source.
-            // Otherwise fall back to the PostHog proxy endpoint.
-            let blobRes: Response;
-            if (source.url) {
-              blobRes = await fetch(source.url);
-              if (!blobRes.ok) throw new Error(`blob url ${blobRes.status}`);
-            } else {
-              // PostHog Cloud: blob_key query param, no source= param
-              blobRes = await client.getStream(
-                `/session_recordings/${recordingId}/snapshots/?blob_key=${source.blob_key}`,
-              );
-            }
-            const blobText = await blobRes.text();
-            for (const line of blobText.split("\n")) {
-              const trimmed = line.trim();
-              if (!trimmed) continue;
-              try {
-                const parsed = JSON.parse(trimmed) as Record<string, unknown>;
-                const props = parsed?.properties as Record<string, unknown> | undefined;
-                // $snapshot_items format (PostHog's internal re-chunked format)
-                if (Array.isArray(props?.["$snapshot_items"])) {
-                  events.push(...(props["$snapshot_items"] as unknown[]));
-                } else if (Array.isArray(parsed?.data)) {
-                  events.push(...(parsed.data as unknown[]));
-                } else if (parsed?.type !== undefined) {
-                  events.push(parsed);
-                }
-              } catch {
-                // skip malformed line
+      // Batch all blob_v2 chunks into a single request using start_blob_key / end_blob_key.
+      // PostHog requires source=blob_v2 with these two params — blob_key alone returns the manifest.
+      const blobKeys = sources
+        .filter((s) => s.source === "blob_v2" || s.source === "blob_v2_lts")
+        .map((s) => parseInt(s.blob_key, 10))
+        .filter((k) => !isNaN(k))
+        .sort((a, b) => a - b);
+
+      if (blobKeys.length > 0) {
+        const startKey = blobKeys[0];
+        const endKey = blobKeys[blobKeys.length - 1];
+        try {
+          const blobRes = await client.getStream(
+            `/session_recordings/${recordingId}/snapshots/?source=blob_v2&start_blob_key=${startKey}&end_blob_key=${endKey}&decompress=true`,
+          );
+          const blobText = await blobRes.text();
+          for (const line of blobText.split("\n")) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            try {
+              const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+              const props = parsed?.properties as Record<string, unknown> | undefined;
+              if (Array.isArray(props?.["$snapshot_items"])) {
+                events.push(...(props["$snapshot_items"] as unknown[]));
+              } else if (parsed?.type !== undefined) {
+                events.push(parsed);
+              } else if (Array.isArray(parsed?.data)) {
+                events.push(...(parsed.data as unknown[]));
               }
+            } catch {
+              // skip malformed line
             }
-          } catch (e) {
-            console.warn(`[recordings] blob_v2 download failed for key ${source.blob_key}:`, e);
           }
+        } catch (e) {
+          console.warn(`[recordings] blob_v2 download failed (keys ${startKey}-${endKey}):`, e);
         }
       }
       return events;
