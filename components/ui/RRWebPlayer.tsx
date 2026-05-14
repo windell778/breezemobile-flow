@@ -2,6 +2,7 @@
 
 import "rrweb-player/dist/style.css";
 import { useEffect, useRef, useState } from "react";
+import type { eventWithTime } from "@rrweb/types";
 
 type Props = {
   recordingId: string;
@@ -9,13 +10,32 @@ type Props = {
   height?: number;
 };
 
-export function RRWebPlayer({ recordingId, width = 800, height = 450 }: Props) {
+const CONTROLLER_HEIGHT = 80;
+
+export function RRWebPlayer({ recordingId }: Props) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
+  // 0 = not yet measured by ResizeObserver; player init waits for a real value
+  const [playerWidth, setPlayerWidth] = useState(0);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const el = wrapperRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const w = Math.floor(entry.contentRect.width);
+      if (w > 0) setPlayerWidth(w);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!playerWidth || !containerRef.current) return;
+
+    const w = playerWidth;
+    const h = Math.floor(w * 9 / 16);
 
     let destroyed = false;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,7 +55,7 @@ export function RRWebPlayer({ recordingId, width = 800, height = 450 }: Props) {
           throw new Error((body as { error?: string }).error ?? `HTTP ${eventsRes.status}`);
         }
 
-        const { events } = (await eventsRes.json()) as { events: unknown[] };
+        const { events } = (await eventsRes.json()) as { events: eventWithTime[] };
 
         if (destroyed) return;
 
@@ -48,8 +68,7 @@ export function RRWebPlayer({ recordingId, width = 800, height = 450 }: Props) {
 
         playerInstance = new rrwebPlayer({
           target: containerRef.current,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          props: { events: events as any[], width, height, autoPlay: true, showController: true },
+          props: { events, width: w, height: h, autoPlay: true, showController: true },
         });
 
         setStatus("ready");
@@ -67,7 +86,9 @@ export function RRWebPlayer({ recordingId, width = 800, height = 450 }: Props) {
       destroyed = true;
       playerInstance?.pause?.();
     };
-  }, [recordingId, width, height]);
+  }, [recordingId, playerWidth]);
+
+  const h = playerWidth ? Math.floor(playerWidth * 9 / 16) : 450;
 
   if (status === "error") {
     return (
@@ -78,13 +99,17 @@ export function RRWebPlayer({ recordingId, width = 800, height = 450 }: Props) {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-md border border-slate-800 bg-slate-950">
+    <div ref={wrapperRef} className="relative overflow-hidden rounded-md border border-slate-800 bg-slate-950">
       {status === "loading" && (
         <div className="absolute inset-0 grid place-items-center text-sm text-slate-400">
           Cargando grabación...
         </div>
       )}
-      <div ref={containerRef} style={{ width: "100%", minHeight: height }} />
+      <div
+        ref={containerRef}
+        className="mx-auto"
+        style={{ width: playerWidth || "100%", minHeight: h + CONTROLLER_HEIGHT }}
+      />
     </div>
   );
 }
