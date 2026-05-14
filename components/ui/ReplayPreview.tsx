@@ -1,5 +1,5 @@
 import type { Session } from "@/lib/data/types";
-import { formatDateTime, formatDuration } from "@/lib/labels";
+import { formatDateTime } from "@/lib/labels";
 import { RRWebPlayer } from "@/components/ui/RRWebPlayer";
 
 type ReplayPreviewProps = {
@@ -18,20 +18,12 @@ export function ReplayPreview({ session }: ReplayPreviewProps) {
       </div>
 
       {hasRecording ? (
-        <RRWebPlayer recordingId={recordingId} height={450} />
+        <RRWebPlayer recordingId={recordingId} width={1200} height={675} />
       ) : (
         <div className="flex aspect-video items-center justify-center bg-[linear-gradient(135deg,#111827,#0f172a_45%,#1d4ed8)]">
           <p className="text-sm text-slate-400">Sin grabación disponible</p>
         </div>
       )}
-
-      <div className="px-4 py-4 text-sm">
-        <p className="font-semibold">Sesion {session.session_id}</p>
-        <p className="mt-1 text-slate-300">{formatDuration(session.duration)}</p>
-        <div className="mt-3 h-1.5 rounded-full bg-white/10">
-          <div className="h-1.5 w-2/5 rounded-full bg-blue-300" />
-        </div>
-      </div>
     </div>
   );
 }
