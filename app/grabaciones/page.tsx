@@ -139,7 +139,7 @@ export default async function GrabacionesPage({ searchParams }: PageProps) {
   return (
     <AppShell
       title="Grabaciones / replay"
-      description="Vista inspirada en OpenPanel: replay destacado, lista de sesiones y feed de eventos asociados. En V0 el reproductor sigue siendo placeholder compatible con PostHog."
+      description="Replay de sesiones reales desde PostHog. Selecciona una sesión de la lista para reproducir su grabación de comportamiento."
     >
       {service ? (
         <div className="mb-4">

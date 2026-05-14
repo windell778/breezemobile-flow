@@ -6,7 +6,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { SourceBadge } from "@/components/ui/SourceBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
-import { formatDateTime, formatDuration, humanValue } from "@/lib/labels";
+import { formatDateTime, formatDuration, humanValue, shortId } from "@/lib/labels";
 import { mainEventLabel, sessionHasEvent } from "@/lib/analytics";
 import type { Session } from "@/lib/data/types";
 
@@ -18,7 +18,7 @@ const filterChips = [
   { key: "todas", label: "Todas" },
   { key: "whatsapp", label: "WhatsApp click" },
   { key: "service", label: "Service click" },
-  { key: "sin_interaccion", label: "Sin interaccion" },
+  { key: "sin_interaccion", label: "Sin interacción" },
   { key: "meta", label: "Meta Ads" },
   { key: "direct", label: "Direct" },
   { key: "replay", label: "Con replay" },
@@ -73,10 +73,10 @@ async function SessionsTable({ p }: { p: TableParams }) {
       <section className="bf-panel bf-defer mt-4 overflow-hidden">
         <div className="hidden grid-cols-[150px_180px_1.1fr_1fr_1fr_120px_150px] border-b border-slate-200 bg-slate-50/80 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 xl:grid">
           <span>Inicio</span>
-          <span>Sesion</span>
+          <span>Sesión</span>
           <span>Visitante / servicio</span>
           <span>Fuente</span>
-          <span>Atribucion</span>
+          <span>Atribución</span>
           <span>Actividad</span>
           <span>Acciones</span>
         </div>
@@ -97,8 +97,12 @@ function SessionRow({ session }: { session: Session }) {
 
       <div>
         <div className="flex items-center gap-2">
-          <Link href={`/visitantes/${session.visitor_id}?session=${session.session_id}`} className="font-mono font-semibold text-cyan-700 hover:underline">
-            {session.session_id}
+          <Link
+            href={`/visitantes/${session.visitor_id}?session=${session.session_id}`}
+            title={session.session_id}
+            className="font-mono font-semibold text-cyan-700 hover:underline"
+          >
+            {shortId(session.session_id)}
           </Link>
           {hasRecording ? (
             <Link href={`/visitantes/${session.visitor_id}?session=${session.session_id}&tab=grabaciones`} aria-label="Ver replay" className="rounded-md border border-blue-200 px-1.5 py-1 text-xs text-blue-700 hover:bg-blue-50">
@@ -110,19 +114,23 @@ function SessionRow({ session }: { session: Session }) {
       </div>
 
       <div>
-        <Link href={`/visitantes/${session.visitor_id}?session=${session.session_id}`} className="font-medium text-slate-950 hover:underline">
-          Visitante {session.visitor_id}
+        <Link
+          href={`/visitantes/${session.visitor_id}?session=${session.session_id}`}
+          title={session.visitor_id}
+          className="font-mono font-medium text-slate-950 hover:underline"
+        >
+          {shortId(session.visitor_id)}
         </Link>
-        <p className="mt-1 text-slate-600">{humanValue(session.service)} - {session.page_path}</p>
+        <p className="mt-1 text-slate-600">{humanValue(session.service)} · {session.page_path}</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
         <SourceBadge source={session.source} />
-        <StatusBadge label={`${session.intent_level} intencion`} />
+        <StatusBadge label={`${session.intent_level} intención`} />
       </div>
 
       <div>
-        <p className="font-medium text-slate-950">{session.attribution.utm_campaign || "Sin campana"}</p>
+        <p className="font-medium text-slate-950">{session.attribution.utm_campaign || "Sin campaña"}</p>
         <p className="mt-1 text-slate-500">{session.attribution.utm_content || session.attribution.ad_id || "Sin anuncio"}</p>
       </div>
 
@@ -185,14 +193,14 @@ export default async function SesionesPage({ searchParams }: PageProps) {
   return (
     <AppShell
       title="Sesiones"
-      description="Registro operativo de sesiones: entrada, visitante, fuente, campana, pagina, evento principal y replay. Es la puerta de entrada a Visitor Intelligence."
+      description="Registro operativo de sesiones: entrada, visitante, fuente, campaña, página, evento principal y replay. Es la puerta de entrada a Visitor Intelligence."
     >
       <section className="bf-panel p-3">
         <form className="grid gap-3 md:grid-cols-[1fr_auto]">
           <input
             name="q"
             defaultValue={String(params.q || "")}
-            placeholder="Buscar por sesion, visitante, servicio, campana, anuncio o pagina..."
+            placeholder="Buscar por sesión, visitante, servicio, campaña, anuncio o página..."
             className="h-9 rounded-md border border-slate-200 px-3 text-sm outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
           />
           <button className="h-9 rounded-md bg-slate-950 px-4 text-sm font-medium text-white hover:bg-slate-800">Buscar</button>
@@ -212,7 +220,7 @@ export default async function SesionesPage({ searchParams }: PageProps) {
           {service ? <ActiveChip label={`Servicio: ${humanValue(service)}`} href="/sesiones" /> : null}
           {source ? <ActiveChip label={`Fuente: ${source}`} href="/sesiones" /> : null}
           {event ? <ActiveChip label={`Evento: ${humanValue(event)}`} href="/sesiones" /> : null}
-          {campaign ? <ActiveChip label={`Campana: ${campaign}`} href="/sesiones" /> : null}
+          {campaign ? <ActiveChip label={`Campaña: ${campaign}`} href="/sesiones" /> : null}
         </div>
       </section>
 
