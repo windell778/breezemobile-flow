@@ -85,7 +85,9 @@ export async function POST(req: NextRequest) {
       `[webhook] Downloading recording ${recordingId} for session ${sessionId} visitor ${visitorId}`,
     );
 
-    const events = await downloadSnapshots(projectId, apiKey, host, recordingId);
+    const byWindow = await downloadSnapshots(projectId, apiKey, host, recordingId);
+    // Flatten all windows into a single array for storage — order by window key.
+    const events = Object.values(byWindow).flat();
 
     if (!events.length) {
       console.warn(`[webhook] No events found for recording ${recordingId}`);

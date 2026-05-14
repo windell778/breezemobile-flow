@@ -153,15 +153,20 @@ export async function fetchSessionRecording(
 }
 
 // Downloads the rrweb event stream for a recording from PostHog.
-// Handles both the current blob_v2 format and the legacy NDJSON format.
+// Returns events grouped by window_id — blob_v2 NDJSON line format is [window_id, rrweb_event].
+// Each window_id has its own independent DOM tree and must be played in a separate rrweb instance.
 export async function downloadSnapshots(
   projectId: string,
   apiKey: string,
   host: string,
   recordingId: string,
-): Promise<unknown[]> {
+): Promise<Record<string, unknown[]>> {
   const client = new PostHogClient({ projectId, apiKey, host });
-  const events: unknown[] = [];
+  const byWindow: Record<string, unknown[]> = {};
+
+  function addEvent(windowId: string, event: unknown) {
+    (byWindow[windowId] ??= []).push(event);
+  }
 
   const manifestRes = await client.getStream(`/session_recordings/${recordingId}/snapshots/`);
   const manifestText = await manifestRes.text();
@@ -198,18 +203,23 @@ export async function downloadSnapshots(
             if (!trimmed) continue;
             try {
               const parsed = JSON.parse(trimmed) as unknown;
-              // PostHog blob_v2 NDJSON format: each line is [recording_id, rrweb_event]
+              // blob_v2 NDJSON: each line is [window_id, rrweb_event]
+              const windowId = Array.isArray(parsed)
+                ? String((parsed as unknown[])[0] ?? "default")
+                : "default";
               const event = Array.isArray(parsed) ? (parsed as unknown[])[1] : parsed;
               const ev = event as Record<string, unknown> | undefined;
               const props = ev?.properties as Record<string, unknown> | undefined;
               if (Array.isArray(props?.["$snapshot_items"])) {
-                events.push(
-                  ...(props["$snapshot_items"] as Record<string, unknown>[]).map(normalizeRRWebEvent),
-                );
+                for (const item of props["$snapshot_items"] as Record<string, unknown>[]) {
+                  addEvent(windowId, normalizeRRWebEvent(item));
+                }
               } else if (ev?.type !== undefined) {
-                events.push(normalizeRRWebEvent(ev));
+                addEvent(windowId, normalizeRRWebEvent(ev));
               } else if (Array.isArray(ev?.data)) {
-                events.push(...(ev.data as unknown[]));
+                for (const item of ev.data as unknown[]) {
+                  addEvent(windowId, item);
+                }
               }
             } catch {
               // skip malformed line
@@ -219,29 +229,31 @@ export async function downloadSnapshots(
           console.warn(`[recordings] blob_v2 download failed (keys ${startKey}-${endKey}):`, e);
         }
       }
-      return events;
+      return byWindow;
     }
   } catch {
     // Not blob_v2 JSON — fall through to NDJSON parser
   }
 
-  // Legacy NDJSON format (one JSON object per line)
+  // Legacy NDJSON format (one JSON object per line) — no window_id, use "default"
   for (const line of manifestText.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
       const parsed = JSON.parse(trimmed) as Record<string, unknown>;
       if (Array.isArray(parsed?.data)) {
-        events.push(...(parsed.data as unknown[]));
+        for (const item of parsed.data as unknown[]) {
+          addEvent("default", item);
+        }
       } else {
-        events.push(parsed);
+        addEvent("default", parsed);
       }
     } catch {
       // skip malformed line
     }
   }
 
-  return events;
+  return byWindow;
 }
 
 // Reads session_id from a recording detail response.
