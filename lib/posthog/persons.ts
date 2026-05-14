@@ -46,7 +46,13 @@ export async function fetchVisitorSessions(
 ): Promise<Session[]> {
   const [events, recordings] = await Promise.all([
     fetchVisitorEvents(projectId, apiKey, host, workspaceId, visitorId),
-    fetchVisitorRecordings(projectId, apiKey, host, workspaceId, visitorId),
+    fetchVisitorRecordings(projectId, apiKey, host, workspaceId, visitorId).catch((err) => {
+      console.warn(
+        "[persons] fetchVisitorRecordings failed — showing sessions without recording data:",
+        err instanceof Error ? err.message : String(err),
+      );
+      return [] as import("@/lib/data/types").RecordingRef[];
+    }),
   ]);
 
   return buildSessionsFromEvents(events, recordings, workspaceId);
