@@ -1,4 +1,4 @@
-import type { Session } from "@/lib/mock-data";
+import type { Session } from "@/lib/data/types";
 import { SourceBadge } from "@/components/ui/SourceBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateTime, humanValue } from "@/lib/labels";
@@ -20,7 +20,7 @@ export function RecentSessions({ sessions }: RecentSessionsProps) {
               <div className="flex items-center gap-2">
                 <SourceBadge source={session.source} />
                 <StatusBadge label={`${session.intent_level} intencion`} />
-                <StatusBadge label={session.recording.available ? "Replay disponible" : "Sin replay"} />
+                <StatusBadge label={session.recording?.status === "available" ? "Replay disponible" : "Sin replay"} />
               </div>
             </div>
             <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-4">

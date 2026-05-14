@@ -1,4 +1,4 @@
-import type { EventName, ServiceKey } from "@/lib/mock-data";
+import type { EventName, ServiceKey } from "@/lib/data/types";
 
 export const fieldLabels: Record<string, string> = {
   visitor_id: "Visitante",
@@ -61,6 +61,13 @@ export function formatDateTime(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+export function formatDuration(seconds: number | null | undefined): string {
+  if (seconds == null) return "n/a";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 export function readableReferrer(value: string) {

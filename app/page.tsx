@@ -1,15 +1,24 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { SourceBadge } from "@/components/ui/SourceBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { RecentSessions } from "@/components/dashboard/RecentSessions";
-import { getDashboardMetrics, getPostHogAdapterNotes } from "@/lib/analytics";
-import { campaignSummaries, servicePageSummaries, sessions, trackingHealth } from "@/lib/mock-data";
+import { getPostHogAdapterNotes } from "@/lib/analytics";
+import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
 import { humanValue } from "@/lib/labels";
 
-export default function Home() {
-  const metrics = getDashboardMetrics();
+export default async function Home() {
+  const adapter = getAdapter();
+  const workspaceId = DEFAULT_WORKSPACE_ID;
+
+  const [metrics, trackingHealth, recentSessions] = await Promise.all([
+    adapter.getDashboardMetrics(workspaceId),
+    adapter.getTrackingHealth(workspaceId),
+    adapter.listSessions(workspaceId, { limit: 5 }),
+  ]);
 
   return (
     <AppShell
@@ -18,7 +27,7 @@ export default function Home() {
     >
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Link href="/sesiones" className="block transition hover:-translate-y-0.5">
-          <MetricCard label="Sesiones capturadas" value={metrics.sessions} detail={`${metrics.visitors} visitantes anonimos en el mock V0.`} />
+          <MetricCard label="Sesiones capturadas" value={metrics.sessions} detail={`${metrics.visitors} visitantes anonimos registrados.`} />
         </Link>
         <Link href="/eventos?event=whatsapp_click" className="block transition hover:-translate-y-0.5">
           <MetricCard label="WhatsApp clicks" value={metrics.whatsappClicks} detail="Evento principal de conversion visible hoy." />
@@ -60,14 +69,18 @@ export default function Home() {
         <div className="bf-panel p-4">
           <h2 className="text-lg font-semibold text-slate-950">Lectura rapida</h2>
           <div className="mt-4 space-y-4 text-sm">
-            <Link href={`/sesiones?q=${encodeURIComponent(metrics.topCampaign.name)}`} className="block rounded-md border border-slate-200 p-3 hover:bg-slate-50">
-              <p className="text-slate-500">Campana con mas senal</p>
-              <p className="mt-1 font-medium text-slate-950">{metrics.topCampaign.name}</p>
-            </Link>
-            <Link href={`/sesiones?service=${metrics.topService.service}`} className="block rounded-md border border-slate-200 p-3 hover:bg-slate-50">
-              <p className="text-slate-500">Servicio mas activo</p>
-              <p className="mt-1 font-medium text-slate-950">{humanValue(metrics.topService.service)}</p>
-            </Link>
+            {metrics.topCampaign ? (
+              <Link href={`/sesiones?q=${encodeURIComponent(metrics.topCampaign.name)}`} className="block rounded-md border border-slate-200 p-3 hover:bg-slate-50">
+                <p className="text-slate-500">Campana con mas senal</p>
+                <p className="mt-1 font-medium text-slate-950">{metrics.topCampaign.name}</p>
+              </Link>
+            ) : null}
+            {metrics.topService ? (
+              <Link href={`/sesiones?service=${metrics.topService.service}`} className="block rounded-md border border-slate-200 p-3 hover:bg-slate-50">
+                <p className="text-slate-500">Servicio mas activo</p>
+                <p className="mt-1 font-medium text-slate-950">{humanValue(metrics.topService.service)}</p>
+              </Link>
+            ) : null}
             <div>
               <p className="text-slate-500">Riesgo principal</p>
               <p className="mt-1 text-amber-700">No convertir tracking V0 en CRM antes de conectar resultados comerciales reales.</p>
@@ -77,7 +90,7 @@ export default function Home() {
       </section>
 
       <section className="mt-6 grid gap-4 xl:grid-cols-[1.3fr_1fr]">
-        <RecentSessions sessions={sessions.slice(0, 5)} />
+        <RecentSessions sessions={recentSessions} />
 
         <div className="bf-panel p-4">
           <h2 className="text-lg font-semibold text-slate-950">Tracking Health</h2>
@@ -96,36 +109,8 @@ export default function Home() {
       </section>
 
       <section className="mt-6 grid gap-4 xl:grid-cols-2">
-        <div className="bf-panel p-4">
-          <h2 className="text-lg font-semibold text-slate-950">Top campanas / fuentes</h2>
-          <div className="mt-4 space-y-3">
-            {campaignSummaries.slice(0, 4).map((campaign) => (
-              <Link key={`${campaign.source}-${campaign.name}`} href={`/sesiones?q=${encodeURIComponent(campaign.name)}`} className="grid gap-3 rounded-md border border-slate-200 p-3 transition hover:border-slate-300 hover:bg-slate-50 md:grid-cols-[1fr_auto_auto] md:items-center">
-                <div>
-                  <p className="font-medium text-slate-950">{campaign.name}</p>
-                  <p className="mt-1 text-sm text-slate-500">{campaign.medium} - {campaign.campaign_id || "sin ID de campana"}</p>
-                </div>
-                <SourceBadge source={campaign.source} />
-                <p className="text-sm font-medium text-slate-700">{campaign.whatsapp_clicks} WhatsApp</p>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <div className="bf-panel p-4">
-          <h2 className="text-lg font-semibold text-slate-950">Paginas / servicios</h2>
-          <div className="mt-4 space-y-3">
-            {servicePageSummaries.slice(0, 4).map((page) => (
-              <Link key={page.path} href={`/sesiones?service=${page.service}`} className="block rounded-md border border-slate-200 p-3 transition hover:border-slate-300 hover:bg-slate-50">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium text-slate-950">{humanValue(page.service)}</p>
-                  <p className="text-sm text-slate-500">{page.sessions} sesiones</p>
-                </div>
-                <p className="mt-1 text-sm text-slate-500">{page.path}</p>
-              </Link>
-            ))}
-          </div>
-        </div>
+        <CampaignsSection workspaceId={workspaceId} />
+        <ServicesSection workspaceId={workspaceId} />
       </section>
 
       <section className="bf-panel mt-6 p-4">
@@ -137,5 +122,46 @@ export default function Home() {
         </div>
       </section>
     </AppShell>
+  );
+}
+
+async function CampaignsSection({ workspaceId }: { workspaceId: string }) {
+  const campaigns = await getAdapter().getCampaignSummaries(workspaceId);
+  return (
+    <div className="bf-panel p-4">
+      <h2 className="text-lg font-semibold text-slate-950">Top campanas / fuentes</h2>
+      <div className="mt-4 space-y-3">
+        {campaigns.slice(0, 4).map((campaign) => (
+          <Link key={`${campaign.source}-${campaign.name}`} href={`/sesiones?q=${encodeURIComponent(campaign.name)}`} className="grid gap-3 rounded-md border border-slate-200 p-3 transition hover:border-slate-300 hover:bg-slate-50 md:grid-cols-[1fr_auto_auto] md:items-center">
+            <div>
+              <p className="font-medium text-slate-950">{campaign.name}</p>
+              <p className="mt-1 text-sm text-slate-500">{campaign.medium} - {campaign.campaign_id || "sin ID de campana"}</p>
+            </div>
+            <SourceBadge source={campaign.source} />
+            <p className="text-sm font-medium text-slate-700">{campaign.whatsapp_clicks} WhatsApp</p>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+async function ServicesSection({ workspaceId }: { workspaceId: string }) {
+  const services = await getAdapter().getServiceSummaries(workspaceId);
+  return (
+    <div className="bf-panel p-4">
+      <h2 className="text-lg font-semibold text-slate-950">Paginas / servicios</h2>
+      <div className="mt-4 space-y-3">
+        {services.slice(0, 4).map((page) => (
+          <Link key={page.path} href={`/sesiones?service=${page.service}`} className="block rounded-md border border-slate-200 p-3 transition hover:border-slate-300 hover:bg-slate-50">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-medium text-slate-950">{humanValue(page.service)}</p>
+              <p className="text-sm text-slate-500">{page.sessions} sesiones</p>
+            </div>
+            <p className="mt-1 text-sm text-slate-500">{page.path}</p>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }

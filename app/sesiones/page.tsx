@@ -2,8 +2,8 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { SourceBadge } from "@/components/ui/SourceBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { sessions } from "@/lib/mock-data";
-import { formatDateTime, humanValue } from "@/lib/labels";
+import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
+import { formatDateTime, formatDuration, humanValue } from "@/lib/labels";
 import { mainEventLabel, sessionHasEvent } from "@/lib/analytics";
 
 type PageProps = {
@@ -29,7 +29,11 @@ export default async function SesionesPage({ searchParams }: PageProps) {
   const event = String(params.event || "");
   const campaign = String(params.campaign || "").toLowerCase();
 
-  const visible = sessions.filter((session) => {
+  const allSessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID);
+
+  const visible = allSessions.filter((session) => {
+    const hasRecording = session.recording?.status === "available";
+
     const matchesFilter =
       filter === "todas" ||
       (filter === "whatsapp" && sessionHasEvent(session, "whatsapp_click")) ||
@@ -37,7 +41,7 @@ export default async function SesionesPage({ searchParams }: PageProps) {
       (filter === "sin_interaccion" && session.events.length === 1) ||
       (filter === "meta" && session.source === "Meta Ads") ||
       (filter === "direct" && session.source === "Direct") ||
-      (filter === "replay" && session.recording.available);
+      (filter === "replay" && hasRecording);
 
     const searchable = [
       session.session_id,
@@ -59,7 +63,7 @@ export default async function SesionesPage({ searchParams }: PageProps) {
   });
 
   const whatsappCount = visible.filter((session) => sessionHasEvent(session, "whatsapp_click")).length;
-  const replayCount = visible.filter((session) => session.recording.available).length;
+  const replayCount = visible.filter((session) => session.recording?.status === "available").length;
 
   return (
     <AppShell
@@ -113,61 +117,64 @@ export default async function SesionesPage({ searchParams }: PageProps) {
           <span>Acciones</span>
         </div>
 
-        {visible.map((session) => (
-          <article key={session.session_id} className="bf-row grid gap-3 px-3 py-2.5 text-sm xl:grid-cols-[150px_180px_1.1fr_1fr_1fr_120px_150px] xl:items-center">
-            <div className="text-slate-500">
-              <p>{formatDateTime(session.timestamp)}</p>
-              <p className="mt-1 font-mono text-xs">{session.duration}</p>
-            </div>
+        {visible.map((session) => {
+          const hasRecording = session.recording?.status === "available";
+          return (
+            <article key={session.session_id} className="bf-row grid gap-3 px-3 py-2.5 text-sm xl:grid-cols-[150px_180px_1.1fr_1fr_1fr_120px_150px] xl:items-center">
+              <div className="text-slate-500">
+                <p>{formatDateTime(session.timestamp)}</p>
+                <p className="mt-1 font-mono text-xs">{formatDuration(session.duration)}</p>
+              </div>
 
-            <div>
-              <div className="flex items-center gap-2">
-                <Link href={`/visitantes/${session.visitor_id}?session=${session.session_id}`} className="font-mono font-semibold text-cyan-700 hover:underline">
-                  {session.session_id}
+              <div>
+                <div className="flex items-center gap-2">
+                  <Link href={`/visitantes/${session.visitor_id}?session=${session.session_id}`} className="font-mono font-semibold text-cyan-700 hover:underline">
+                    {session.session_id}
+                  </Link>
+                  {hasRecording ? (
+                    <Link href={`/visitantes/${session.visitor_id}?session=${session.session_id}&tab=grabaciones`} aria-label="Ver replay" className="rounded-md border border-blue-200 px-1.5 py-1 text-xs text-blue-700 hover:bg-blue-50">
+                      replay
+                    </Link>
+                  ) : null}
+                </div>
+                <p className="mt-1 text-xs text-slate-500">{session.events.length} eventos</p>
+              </div>
+
+              <div>
+                <Link href={`/visitantes/${session.visitor_id}?session=${session.session_id}`} className="font-medium text-slate-950 hover:underline">
+                  Visitante {session.visitor_id}
                 </Link>
-                {session.recording.available ? (
-                <Link href={`/visitantes/${session.visitor_id}?session=${session.session_id}&tab=grabaciones`} aria-label="Ver replay" className="rounded-md border border-blue-200 px-1.5 py-1 text-xs text-blue-700 hover:bg-blue-50">
-                    replay
+                <p className="mt-1 text-slate-600">{humanValue(session.service)} - {session.page_path}</p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <SourceBadge source={session.source} />
+                <StatusBadge label={`${session.intent_level} intencion`} />
+              </div>
+
+              <div>
+                <p className="font-medium text-slate-950">{session.attribution.utm_campaign || "Sin campana"}</p>
+                <p className="mt-1 text-slate-500">{session.attribution.utm_content || session.attribution.ad_id || "Sin anuncio"}</p>
+              </div>
+
+              <div>
+                <StatusBadge label={mainEventLabel(session)} />
+                <p className="mt-2 text-xs text-slate-500">{hasRecording ? "Replay disponible" : "Sin replay"}</p>
+              </div>
+
+              <div className="flex flex-wrap gap-2 xl:justify-end">
+                <Link href={`/visitantes/${session.visitor_id}?session=${session.session_id}`} className="bf-control text-slate-700 hover:bg-slate-50">
+                  Ver visitante
+                </Link>
+                {hasRecording ? (
+                  <Link href={`/visitantes/${session.visitor_id}?session=${session.session_id}&tab=grabaciones`} className="bf-control border-slate-950 bg-slate-950 text-white hover:bg-slate-800">
+                    Ver replay
                   </Link>
                 ) : null}
               </div>
-              <p className="mt-1 text-xs text-slate-500">{session.events.length} eventos</p>
-            </div>
-
-            <div>
-              <Link href={`/visitantes/${session.visitor_id}?session=${session.session_id}`} className="font-medium text-slate-950 hover:underline">
-                Visitante {session.visitor_id}
-              </Link>
-              <p className="mt-1 text-slate-600">{humanValue(session.service)} - {session.page_path}</p>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <SourceBadge source={session.source} />
-              <StatusBadge label={`${session.intent_level} intencion`} />
-            </div>
-
-            <div>
-              <p className="font-medium text-slate-950">{session.attribution.utm_campaign || "Sin campana"}</p>
-              <p className="mt-1 text-slate-500">{session.attribution.utm_content || session.attribution.ad_id || "Sin anuncio"}</p>
-            </div>
-
-            <div>
-              <StatusBadge label={mainEventLabel(session)} />
-              <p className="mt-2 text-xs text-slate-500">{session.recording.available ? "Replay disponible" : "Sin replay"}</p>
-            </div>
-
-            <div className="flex flex-wrap gap-2 xl:justify-end">
-              <Link href={`/visitantes/${session.visitor_id}?session=${session.session_id}`} className="bf-control text-slate-700 hover:bg-slate-50">
-                Ver visitante
-              </Link>
-              {session.recording.available ? (
-                <Link href={`/visitantes/${session.visitor_id}?session=${session.session_id}&tab=grabaciones`} className="bf-control border-slate-950 bg-slate-950 text-white hover:bg-slate-800">
-                  Ver replay
-                </Link>
-              ) : null}
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </section>
     </AppShell>
   );
