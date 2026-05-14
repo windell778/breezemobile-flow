@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+
+import { Suspense } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { ReplayPreview } from "@/components/ui/ReplayPreview";
@@ -12,22 +15,18 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function GrabacionesPage({ searchParams }: PageProps) {
-  const params = (await searchParams) || {};
-  const service = String(params.service || "");
+type GrabacionesParams = {
+  service: string;
+  selectedSessionId: string;
+};
 
+async function GrabacionesContent({ p }: { p: GrabacionesParams }) {
   const allSessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID);
-  const scopedSessions = service ? allSessions.filter((s) => s.service === service) : allSessions;
-
-  const selectedSessionId = String(
-    params.session ||
-    scopedSessions.find((s) => s.recording?.status === "available")?.session_id ||
-    scopedSessions[0]?.session_id ||
-    "",
-  );
+  const scopedSessions = p.service ? allSessions.filter((s) => s.service === p.service) : allSessions;
 
   const activeSession =
-    scopedSessions.find((s) => s.session_id === selectedSessionId) ||
+    scopedSessions.find((s) => s.session_id === p.selectedSessionId) ||
+    scopedSessions.find((s) => s.recording?.status === "available") ||
     scopedSessions[0] ||
     allSessions[0];
 
@@ -35,31 +34,16 @@ export default async function GrabacionesPage({ searchParams }: PageProps) {
   const missing = allSessions.length - recordings.length;
 
   if (!activeSession) {
-    return (
-      <AppShell title="Grabaciones / replay">
-        <p className="text-sm text-slate-500">No hay sesiones disponibles.</p>
-      </AppShell>
-    );
+    return <p className="text-sm text-slate-500">No hay sesiones disponibles.</p>;
   }
 
   return (
-    <AppShell
-      title="Grabaciones / replay"
-      description="Vista inspirada en OpenPanel: replay destacado, lista de sesiones y feed de eventos asociados. En V0 el reproductor sigue siendo placeholder compatible con PostHog."
-    >
+    <>
       <section className="grid gap-3 md:grid-cols-3">
         <Stat label="Grabaciones disponibles" value={recordings.length} />
         <Stat label="Sesiones sin replay" value={missing} />
         <Stat label="Proveedor V0" value="PostHog" />
       </section>
-
-      {service ? (
-        <div className="mt-4">
-          <Link href="/grabaciones" className="bf-chip border-amber-200 bg-amber-50 text-amber-800">
-            Servicio: {humanValue(service)} x
-          </Link>
-        </div>
-      ) : null}
 
       <section className="bf-defer mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_390px]">
         <div className="space-y-4">
@@ -100,7 +84,7 @@ export default async function GrabacionesPage({ searchParams }: PageProps) {
               {scopedSessions.map((session) => (
                 <Link
                   key={session.session_id}
-                  href={`/grabaciones?session=${session.session_id}${service ? `&service=${service}` : ""}`}
+                  href={`/grabaciones?session=${session.session_id}${p.service ? `&service=${p.service}` : ""}`}
                   className={`block rounded-md border p-2.5 text-sm ${
                     session.session_id === activeSession.session_id ? "border-slate-900 bg-slate-50" : "border-slate-200 hover:bg-slate-50"
                   }`}
@@ -117,6 +101,57 @@ export default async function GrabacionesPage({ searchParams }: PageProps) {
           </div>
         </aside>
       </section>
+    </>
+  );
+}
+
+function GrabacionesLoading() {
+  return (
+    <>
+      <section className="grid gap-3 md:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bf-panel animate-pulse p-3">
+            <div className="h-3 w-28 rounded bg-slate-200" />
+            <div className="mt-3 h-8 w-12 rounded bg-slate-200" />
+          </div>
+        ))}
+      </section>
+      <section className="bf-defer mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_390px]">
+        <div className="animate-pulse space-y-4">
+          <div className="aspect-video rounded-md bg-slate-200" />
+          <div className="bf-panel h-32 bg-slate-50 p-4" />
+        </div>
+        <div className="animate-pulse space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-20 rounded-md border border-slate-200 bg-slate-100" />
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+export default async function GrabacionesPage({ searchParams }: PageProps) {
+  const params = (await searchParams) || {};
+  const service = String(params.service || "");
+  const selectedSessionId = String(params.session || "");
+
+  return (
+    <AppShell
+      title="Grabaciones / replay"
+      description="Vista inspirada en OpenPanel: replay destacado, lista de sesiones y feed de eventos asociados. En V0 el reproductor sigue siendo placeholder compatible con PostHog."
+    >
+      {service ? (
+        <div className="mb-4">
+          <Link href="/grabaciones" className="bf-chip border-amber-200 bg-amber-50 text-amber-800">
+            Servicio: {humanValue(service)} x
+          </Link>
+        </div>
+      ) : null}
+
+      <Suspense fallback={<GrabacionesLoading />}>
+        <GrabacionesContent p={{ service, selectedSessionId }} />
+      </Suspense>
     </AppShell>
   );
 }
