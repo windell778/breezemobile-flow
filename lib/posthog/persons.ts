@@ -1,15 +1,15 @@
 // PostHog Persons API queries — server-side only.
 
-import type { Session, Visitor } from "@/lib/data/types";
-import { PostHogClient } from "@/lib/posthog/client";
+import type { RecordingRef, Session, Visitor } from "@/lib/data/types";
 import {
   buildSessionsFromEvents,
-  normalizeVisitor,
-  type PHPersonsResponse,
 } from "@/lib/posthog/normalizer";
 import { fetchVisitorEvents } from "@/lib/posthog/events";
 import { fetchVisitorRecordings } from "@/lib/posthog/recordings";
 
+// Build a visitor profile from their events using HogQL (properties.visitor_id).
+// Avoids PostHog /persons/?distinct_id= which uses PostHog's internal UUID,
+// not our custom visitor_id stored in event properties.
 export async function fetchVisitorProfile(
   projectId: string,
   apiKey: string,
@@ -17,24 +17,20 @@ export async function fetchVisitorProfile(
   workspaceId: string,
   visitorId: string,
 ): Promise<Visitor | null> {
-  const client = new PostHogClient({ projectId, apiKey, host });
-
-  const data = await client.get<PHPersonsResponse>("/persons/", {
-    distinct_id: visitorId,
-  });
-
-  const person = data.results.find((p) =>
-    p.distinct_ids.includes(visitorId) ||
-    String(p.properties.visitor_id) === visitorId,
-  );
-
-  if (!person) return null;
-
-  // Get session IDs from events to populate sessions[].
   const events = await fetchVisitorEvents(projectId, apiKey, host, workspaceId, visitorId);
-  const sessionIds = [...new Set(events.map((e) => e.session_id).filter(Boolean))];
+  if (events.length === 0) return null;
 
-  return normalizeVisitor(person, workspaceId, sessionIds);
+  const sessionIds = [...new Set(events.map((e) => e.session_id).filter(Boolean))];
+  const timestamps = events.map((e) => e.timestamp).sort();
+
+  return {
+    workspace_id: workspaceId,
+    visitor_id: visitorId,
+    first_seen: timestamps[0],
+    last_seen: timestamps[timestamps.length - 1],
+    session_count: sessionIds.length,
+    sessions: sessionIds,
+  };
 }
 
 export async function fetchVisitorSessions(
@@ -51,7 +47,7 @@ export async function fetchVisitorSessions(
         "[persons] fetchVisitorRecordings failed — showing sessions without recording data:",
         err instanceof Error ? err.message : String(err),
       );
-      return [] as import("@/lib/data/types").RecordingRef[];
+      return [] as RecordingRef[];
     }),
   ]);
 
