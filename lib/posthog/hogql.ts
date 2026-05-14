@@ -9,6 +9,7 @@ import type {
   EventFilters,
   EventName,
   IntentLevel,
+  RecordingRef,
   ServiceKey,
   ServicePageSummary,
   Session,
@@ -85,6 +86,48 @@ function buildAttribution(r: Record<string, unknown>): Attribution {
 const EVENT_FILTER = `event IN ('page_view_custom', 'service_click', 'whatsapp_click')`;
 const SESSION_FILTER = `properties.session_id IS NOT NULL AND properties.session_id != ''`;
 
+// Fetches all PostHog session recordings and returns a map keyed by our breeze session_id.
+// properties.session_id on session_recordings comes from posthog.register({ session_id }).
+async function fetchRecordingsMap(
+  projectId: string,
+  apiKey: string,
+  host: string,
+  workspaceId: string,
+): Promise<Map<string, RecordingRef>> {
+  const map = new Map<string, RecordingRef>();
+  try {
+    const result = await runHogQL(projectId, apiKey, host, `
+      SELECT
+        session_id AS recording_id,
+        distinct_id,
+        toString(properties.session_id) AS our_session_id
+      FROM session_recordings
+      LIMIT 500
+    `);
+    for (const row of result.results) {
+      const r = toRow(result.columns, row);
+      const ourSessionId = str(r.our_session_id);
+      const recordingId = str(r.recording_id);
+      if (!ourSessionId || !recordingId) continue;
+      map.set(ourSessionId, {
+        workspace_id: workspaceId,
+        recording_id: recordingId,
+        session_id: ourSessionId,
+        visitor_id: str(r.distinct_id),
+        provider: "posthog",
+        status: "available",
+        duration: null,
+        started_at: "",
+        storage_key: null,
+        captured_at: new Date().toISOString(),
+      });
+    }
+  } catch (e) {
+    console.warn("[hogql] fetchRecordingsMap failed — sessions will show without recordings:", e);
+  }
+  return map;
+}
+
 const EVENT_COLUMNS = `
   event AS event_name,
   toString(properties.event_id) AS event_id,
@@ -151,7 +194,12 @@ export async function listSessionsHogQL(
     LIMIT 5000
   `;
 
-  const result = await runHogQL(projectId, apiKey, host, sql);
+  // Run events query and recordings query in parallel.
+  const [result, recordingsMap] = await Promise.all([
+    runHogQL(projectId, apiKey, host, sql),
+    fetchRecordingsMap(projectId, apiKey, host, workspaceId),
+  ]);
+
   const sessionMap = new Map<string, Session>();
 
   for (const row of result.results) {
@@ -191,10 +239,24 @@ export async function listSessionsHogQL(
     }
     session.events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     session.intent_level = inferIntentLevel(session.events);
-    // Use first event's source in case per-event source differs within a session.
     if (session.events[0]) {
       session.source = session.events[0].source;
     }
+
+    // Associate recording if PostHog has one for this session.
+    const recording = recordingsMap.get(session.session_id);
+    session.recording = recording ?? {
+      workspace_id: workspaceId,
+      recording_id: "",
+      session_id: session.session_id,
+      visitor_id: session.visitor_id,
+      provider: "posthog",
+      status: "missing",
+      duration: null,
+      started_at: session.timestamp,
+      storage_key: null,
+      captured_at: new Date().toISOString(),
+    };
   }
 
   let sessions = Array.from(sessionMap.values()).sort(
@@ -283,15 +345,16 @@ export async function getDashboardMetricsHogQL(
     WHERE ${EVENT_FILTER} AND ${SESSION_FILTER}
   `;
 
-  const [result, campaigns, services] = await Promise.all([
+  const [result, campaigns, services, recordingsMap] = await Promise.all([
     runHogQL(projectId, apiKey, host, sql),
     getCampaignSummariesHogQL(projectId, apiKey, host, workspaceId),
     getServiceSummariesHogQL(projectId, apiKey, host, workspaceId),
+    fetchRecordingsMap(projectId, apiKey, host, workspaceId),
   ]);
 
   const r = toRow(result.columns, result.results[0] ?? [0, 0, 0, 0, 0]);
   const totalSessions = num(r.sessions);
-  const recordings = 0;
+  const recordings = recordingsMap.size;
 
   return {
     sessions: totalSessions,
