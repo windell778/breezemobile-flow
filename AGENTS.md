@@ -27,10 +27,13 @@ Read in this order:
 3. `docs/architecture/plan.md` — data model, adapter design, recording strategy.
 4. `docs/product/scope-and-non-goals.md` — what must not be built.
 
-If the task touches **recordings, rrweb, snapshots, or the PostHog recordings API**,
-also read `docs/architecture/recordings.md` before writing any code.
+If the task touches recordings, replay, rrweb, PostHog snapshots,
+`/api/recordings/*`, R2 storage, or `lib/posthog/recordings.ts`, read
+`docs/architecture/recordings.md` before changing code. That document is
+the source of truth for `blob_v2`, gzip latin1, `window_id`, and the
+failure modes that can break the player.
 
-If the task touches **the DataAdapter, HogQL queries, or session construction**,
+If the task touches the DataAdapter, HogQL queries, or session construction,
 also read `docs/architecture/data-flow-and-adapter.md`.
 
 Confirm mentally before touching code:
