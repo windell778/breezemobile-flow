@@ -56,9 +56,15 @@ export function humanValue(value: string | boolean | null | undefined) {
   return String(value).replaceAll("_", " ");
 }
 
-// Returns the first 8 characters of an ID for display purposes.
-// The full ID is always preserved in href, title attributes, and technical views.
+// Returns the unique display fragment of an ID.
+// For IDs with the pattern prefix_timestamp_suffix (like sess_17787..._cie4wf7),
+// extracts the suffix after the last underscore — the only part that differs.
+// Falls back to the first 8 characters for IDs without underscores (UUIDs, etc.).
 export function shortId(id: string): string {
+  const lastUnderscore = id.lastIndexOf("_");
+  if (lastUnderscore !== -1 && id.length - lastUnderscore - 1 >= 4) {
+    return id.slice(lastUnderscore + 1);
+  }
   return id.slice(0, 8);
 }
 
