@@ -208,6 +208,10 @@ type FieldStatus =
 
 ## 5. Estrategia de grabaciones
 
+> **Implementación actual documentada en:** `docs/architecture/recordings.md`
+> Este documento describe la arquitectura objetivo. Lo que está
+> desplegado hoy difiere en el flujo de descarga (tiempo real vs R2).
+
 ### Principio
 
 Los "videos" de PostHog no son archivos de video. Son streams de
