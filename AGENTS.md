@@ -27,6 +27,12 @@ Read in this order:
 3. `docs/architecture/plan.md` — data model, adapter design, recording strategy.
 4. `docs/product/scope-and-non-goals.md` — what must not be built.
 
+If the task touches **recordings, rrweb, snapshots, or the PostHog recordings API**,
+also read `docs/architecture/recordings.md` before writing any code.
+
+If the task touches **the DataAdapter, HogQL queries, or session construction**,
+also read `docs/architecture/data-flow-and-adapter.md`.
+
 Confirm mentally before touching code:
 
 - The task belongs to the current phase.
