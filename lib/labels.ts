@@ -57,10 +57,13 @@ export function humanValue(value: string | boolean | null | undefined) {
 }
 
 export function formatDateTime(value: string) {
+  // PostHog HogQL timestamps have no timezone suffix — treat as UTC explicitly.
+  const normalized = value.includes("T") || value.endsWith("Z") ? value : value.replace(" ", "T") + "Z";
   return new Intl.DateTimeFormat("es-CR", {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+    timeZone: "America/Costa_Rica",
+  }).format(new Date(normalized));
 }
 
 export function formatDuration(seconds: number | null | undefined): string {
