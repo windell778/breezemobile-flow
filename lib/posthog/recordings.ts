@@ -26,11 +26,34 @@ function decompressEventData(data: unknown): unknown {
   return data;
 }
 
-function normalizeRRWebEvent(ev: Record<string, unknown>): Record<string, unknown> {
-  if (typeof ev.data === "string") {
-    return { ...ev, data: decompressEventData(ev.data) };
+// Recursively removes null/undefined nodes from rrweb snapshot trees.
+// PostHog includes null entries in childNodes for blocked/masked elements;
+// standard rrweb-player crashes on them with "Cannot read properties of undefined".
+function sanitizeNode(node: unknown): unknown {
+  if (node == null || typeof node !== "object") return node;
+  const n = node as Record<string, unknown>;
+  const result: Record<string, unknown> = { ...n };
+  if (Array.isArray(result.childNodes)) {
+    result.childNodes = (result.childNodes as unknown[])
+      .filter((child) => child != null)
+      .map(sanitizeNode);
   }
-  return ev;
+  return result;
+}
+
+function normalizeRRWebEvent(ev: Record<string, unknown>): Record<string, unknown> {
+  let data = ev.data;
+  if (typeof data === "string") {
+    data = decompressEventData(data);
+  }
+  // Sanitize FullSnapshot (type 2) node tree to remove null/undefined nodes.
+  if (ev.type === 2 && data != null && typeof data === "object") {
+    const d = data as Record<string, unknown>;
+    if (d.node != null) {
+      data = { ...d, node: sanitizeNode(d.node) };
+    }
+  }
+  return { ...ev, data };
 }
 
 export async function fetchVisitorRecordings(
