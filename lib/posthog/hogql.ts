@@ -2,6 +2,7 @@
 // Used by PostHogAdapter for listSessions, listEvents, getDashboardMetrics, etc.
 // Server-side only — never import from client components.
 
+import { unstable_cache } from "next/cache";
 import type {
   Attribution,
   CampaignSummary,
@@ -25,16 +26,28 @@ type HogQLResponse = {
   columns: string[];
 };
 
+// Cache HogQL POST responses for 60 seconds.
+// The cache key is derived from all arguments (projectId + query string).
+// Different SQL strings → different cache entries, so filtered queries
+// (e.g. per visitorId) are cached independently.
+const _cachedHogQLPost = unstable_cache(
+  async (projectId: string, apiKey: string, host: string, query: string): Promise<HogQLResponse> => {
+    const client = new PostHogClient({ projectId, apiKey, host });
+    return client.post<HogQLResponse>("/query/", {
+      query: { kind: "HogQLQuery", query },
+    });
+  },
+  ["posthog-hogql"],
+  { revalidate: 60 },
+);
+
 async function runHogQL(
   projectId: string,
   apiKey: string,
   host: string,
   query: string,
 ): Promise<HogQLResponse> {
-  const client = new PostHogClient({ projectId, apiKey, host });
-  return client.post<HogQLResponse>("/query/", {
-    query: { kind: "HogQLQuery", query },
-  });
+  return _cachedHogQLPost(projectId, apiKey, host, query);
 }
 
 function toRow(columns: string[], row: unknown[]): Record<string, unknown> {
