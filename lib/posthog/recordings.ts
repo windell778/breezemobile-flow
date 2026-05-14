@@ -95,20 +95,31 @@ export async function downloadSnapshots(
   const manifestText = await manifestRes.text();
 
   // PostHog blob_v2 format: manifest is JSON with sources array.
-  // Each source requires a separate blob download.
+  // The sources array is at the root (manifest.sources) in PostHog Cloud.
   try {
     const manifest = JSON.parse(manifestText) as {
-      events?: Array<{ sources?: Array<{ source: string; blob_key: string }> }>;
+      sources?: Array<{ source: string; blob_key: string; url?: string }>;
+      events?: Array<{ sources?: Array<{ source: string; blob_key: string; url?: string }> }>;
     };
-    const sources = manifest.events?.[0]?.sources ?? [];
+    // PostHog Cloud puts sources at root; some versions wrap it in events[0]
+    const sources = manifest.sources ?? manifest.events?.[0]?.sources ?? [];
 
     if (sources.length > 0) {
       for (const source of sources) {
         if (source.source === "blob_v2" || source.source === "blob") {
           try {
-            const blobRes = await client.getStream(
-              `/session_recordings/${recordingId}/snapshots/?source=blob&blob_key=${source.blob_key}`,
-            );
+            // Some PostHog plans return a presigned download URL directly in the source.
+            // Otherwise fall back to the PostHog proxy endpoint.
+            let blobRes: Response;
+            if (source.url) {
+              blobRes = await fetch(source.url);
+              if (!blobRes.ok) throw new Error(`blob url ${blobRes.status}`);
+            } else {
+              // PostHog Cloud: blob_key query param, no source= param
+              blobRes = await client.getStream(
+                `/session_recordings/${recordingId}/snapshots/?blob_key=${source.blob_key}`,
+              );
+            }
             const blobText = await blobRes.text();
             for (const line of blobText.split("\n")) {
               const trimmed = line.trim();

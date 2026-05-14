@@ -86,8 +86,10 @@ function buildAttribution(r: Record<string, unknown>): Attribution {
 const EVENT_FILTER = `event IN ('page_view_custom', 'service_click', 'whatsapp_click')`;
 const SESSION_FILTER = `properties.session_id IS NOT NULL AND properties.session_id != ''`;
 
-// Fetches all PostHog session recordings and returns a map keyed by our breeze session_id.
-// properties.session_id on session_recordings comes from posthog.register({ session_id }).
+// Fetches recent PostHog session recordings via REST API and returns a map keyed
+// by our breeze session_id (stored in person.properties.session_id via posthog.register).
+// Uses the same REST approach as Visitor Intelligence — HogQL's session_recordings
+// table is not available in PostHog Cloud.
 async function fetchRecordingsMap(
   projectId: string,
   apiKey: string,
@@ -96,28 +98,29 @@ async function fetchRecordingsMap(
 ): Promise<Map<string, RecordingRef>> {
   const map = new Map<string, RecordingRef>();
   try {
-    const result = await runHogQL(projectId, apiKey, host, `
-      SELECT
-        session_id AS recording_id,
-        distinct_id,
-        toString(properties.session_id) AS our_session_id
-      FROM session_recordings
-      LIMIT 500
-    `);
-    for (const row of result.results) {
-      const r = toRow(result.columns, row);
-      const ourSessionId = str(r.our_session_id);
-      const recordingId = str(r.recording_id);
-      if (!ourSessionId || !recordingId) continue;
-      map.set(ourSessionId, {
+    const client = new PostHogClient({ projectId, apiKey, host });
+    const data = await client.get<{
+      results: Array<{
+        id: string;
+        distinct_id: string;
+        start_time: string;
+        duration: number;
+        person?: { properties?: Record<string, unknown> };
+      }>;
+    }>("/session_recordings/", { limit: "200" });
+
+    for (const rec of data.results ?? []) {
+      const sessionId = String(rec.person?.properties?.session_id ?? "").trim();
+      if (!sessionId) continue;
+      map.set(sessionId, {
         workspace_id: workspaceId,
-        recording_id: recordingId,
-        session_id: ourSessionId,
-        visitor_id: str(r.distinct_id),
+        recording_id: rec.id,
+        session_id: sessionId,
+        visitor_id: rec.distinct_id,
         provider: "posthog",
         status: "available",
-        duration: null,
-        started_at: "",
+        duration: rec.duration ?? null,
+        started_at: rec.start_time,
         storage_key: null,
         captured_at: new Date().toISOString(),
       });
