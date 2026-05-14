@@ -1,5 +1,6 @@
 "use client";
 
+import "rrweb-player/dist/style.css";
 import { useEffect, useRef, useState } from "react";
 
 type Props = {
@@ -48,7 +49,7 @@ export function RRWebPlayer({ recordingId, width = 800, height = 450 }: Props) {
 
         playerInstance = new rrwebPlayer({
           target: containerRef.current,
-          props: { events, width, height, autoPlay: false },
+          props: { events, width, height, autoPlay: true, showController: true },
         });
 
         setStatus("ready");

@@ -52,13 +52,32 @@ function normalizeRRWebEvent(ev: Record<string, unknown>): Record<string, unknow
   if (typeof data === "string") {
     data = decompressEventData(data);
   }
-  // Sanitize FullSnapshot (type 2) node tree to remove null/undefined nodes.
+
   if (ev.type === 2 && data != null && typeof data === "object") {
+    // FullSnapshot: sanitize null/undefined nodes in DOM tree.
     const d = data as Record<string, unknown>;
     if (d.node != null) {
       data = { ...d, node: sanitizeNode(d.node) };
     }
+  } else if (ev.type === 3 && data != null && typeof data === "object") {
+    // IncrementalSnapshot mutations (source 0): decompress adds/attributes/removes/texts.
+    const d = data as Record<string, unknown>;
+    if (
+      typeof d.adds === "string" ||
+      typeof d.attributes === "string" ||
+      typeof d.removes === "string" ||
+      typeof d.texts === "string"
+    ) {
+      data = {
+        ...d,
+        adds: typeof d.adds === "string" ? decompressEventData(d.adds) : d.adds,
+        attributes: typeof d.attributes === "string" ? decompressEventData(d.attributes) : d.attributes,
+        removes: typeof d.removes === "string" ? decompressEventData(d.removes) : d.removes,
+        texts: typeof d.texts === "string" ? decompressEventData(d.texts) : d.texts,
+      };
+    }
   }
+
   return { ...ev, data };
 }
 
