@@ -148,7 +148,9 @@ export function normalizeRecording(
   sessionId: string,
   storageKey: string | null,
 ): RecordingRef {
-  const status: RecordingStatus = storageKey ? "available" : "processing";
+  // Recordings returned by PostHog API are streamable via /snapshots/ — mark as available.
+  // storageKey is reserved for future self-hosted R2 copies.
+  const status: RecordingStatus = "available";
   return {
     workspace_id: workspaceId,
     recording_id: rec.id,

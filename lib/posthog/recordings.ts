@@ -18,8 +18,17 @@ export async function fetchVisitorRecordings(
 ): Promise<RecordingRef[]> {
   const client = new PostHogClient({ projectId, apiKey, host });
 
-  const data = await client.get<PHRecordingsResponse>("/session_recordings/", {
+  // posthog.identify(visitorId) in breeze-scripts makes our visitor_id the PostHog distinct_id.
+  // The /session_recordings/ endpoint requires person_uuid, not distinct_id directly.
+  const persons = await client.get<{ results: Array<{ uuid: string }> }>("/persons/", {
     distinct_id: visitorId,
+    limit: "1",
+  });
+  if (!persons.results?.length) return [];
+  const personUuid = persons.results[0].uuid;
+
+  const data = await client.get<PHRecordingsResponse>("/session_recordings/", {
+    person_uuid: personUuid,
     limit: "50",
   });
 
