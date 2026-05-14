@@ -8,7 +8,8 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
 import { formatDateTime, formatDuration, humanValue, shortId } from "@/lib/labels";
 import { mainEventLabel, sessionHasEvent } from "@/lib/analytics";
-import type { Session } from "@/lib/data/types";
+import { EmptyState } from "@/components/ui/EmptyState";
+import type { Session, SessionFilters, Source, ServiceKey, EventName } from "@/lib/data/types";
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -34,29 +35,33 @@ type TableParams = {
 };
 
 async function SessionsTable({ p }: { p: TableParams }) {
-  const allSessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID);
+  // Map URL params to adapter-level filters so the adapter (and PostHog SQL)
+  // can apply them before returning data, rather than filtering all sessions in JS.
+  const adapterFilters: SessionFilters = {};
 
+  if (p.filter === "meta") adapterFilters.source = "Meta Ads";
+  else if (p.filter === "direct") adapterFilters.source = "Direct";
+  else if (p.source) adapterFilters.source = p.source as Source;
+
+  if (p.service) adapterFilters.service = p.service as ServiceKey;
+  if (p.query) adapterFilters.search = p.query;
+  if (p.filter === "replay") adapterFilters.hasRecording = true;
+  if (p.filter === "whatsapp") adapterFilters.eventName = "whatsapp_click";
+  else if (p.filter === "service") adapterFilters.eventName = "service_click";
+  if (p.event) adapterFilters.eventName = p.event as EventName;
+
+  const allSessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID, adapterFilters);
+
+  // Only handle filters the adapter doesn't model yet.
   const visible = allSessions.filter((session) => {
-    const hasRecording = session.recording?.status === "available";
-    const matchesFilter =
-      p.filter === "todas" ||
-      (p.filter === "whatsapp" && sessionHasEvent(session, "whatsapp_click")) ||
-      (p.filter === "service" && sessionHasEvent(session, "service_click")) ||
-      (p.filter === "sin_interaccion" && session.events.length === 1) ||
-      (p.filter === "meta" && session.source === "Meta Ads") ||
-      (p.filter === "direct" && session.source === "Direct") ||
-      (p.filter === "replay" && hasRecording);
-    const searchable = [
-      session.session_id, session.visitor_id, humanValue(session.service),
-      session.attribution.utm_campaign, session.attribution.utm_content,
-      session.page_path, session.page_title, session.source,
-    ].join(" ").toLowerCase();
-    const matchesService = !p.service || session.service === p.service;
-    const matchesSource = !p.source || session.source === p.source;
-    const matchesEvent = !p.event || session.events.some((item) => item.event_name === p.event);
+    const matchesSinInteraccion = p.filter !== "sin_interaccion" || session.events.length === 1;
     const matchesCampaign = !p.campaign || session.attribution.utm_campaign.toLowerCase() === p.campaign;
-    return matchesFilter && matchesService && matchesSource && matchesEvent && matchesCampaign && (!p.query || searchable.includes(p.query));
+    return matchesSinInteraccion && matchesCampaign;
   });
+
+  if (visible.length === 0) {
+    return <EmptyState message="No se encontraron sesiones con los filtros actuales." />;
+  }
 
   const whatsappCount = visible.filter((session) => sessionHasEvent(session, "whatsapp_click")).length;
   const replayCount = visible.filter((session) => session.recording?.status === "available").length;

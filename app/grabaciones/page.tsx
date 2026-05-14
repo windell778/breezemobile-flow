@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { Suspense } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ReplayPreview } from "@/components/ui/ReplayPreview";
 import { SourceBadge } from "@/components/ui/SourceBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -34,7 +35,7 @@ async function GrabacionesContent({ p }: { p: GrabacionesParams }) {
   const missing = allSessions.length - recordings.length;
 
   if (!activeSession) {
-    return <p className="text-sm text-slate-500">No hay sesiones disponibles.</p>;
+    return <EmptyState message="No hay sesiones disponibles." />;
   }
 
   return (
