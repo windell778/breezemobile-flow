@@ -19,7 +19,7 @@ export function Topbar() {
               className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
             />
           </form>
-          <div className="hidden h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 sm:flex">Ultimos 7 dias</div>
+          <div className="hidden h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 sm:flex">Últimos 7 días</div>
           <div className="flex h-9 items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 text-xs font-medium text-emerald-700">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             Tracking activo

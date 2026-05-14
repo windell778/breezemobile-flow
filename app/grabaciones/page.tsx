@@ -8,7 +8,7 @@ import { SourceBadge } from "@/components/ui/SourceBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
 import type { Session } from "@/lib/data/types";
-import { eventLabels, formatDateTime, formatDuration, humanValue } from "@/lib/labels";
+import { eventLabels, formatDateTime, formatDuration, humanValue, shortId } from "@/lib/labels";
 import { mainEventLabel } from "@/lib/analytics";
 
 type PageProps = {
@@ -55,24 +55,20 @@ async function GrabacionesContent({ p }: { p: GrabacionesParams }) {
             </div>
           )}
 
-          <div className="bf-panel p-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-950">Sesion {activeSession.session_id}</h2>
-                <p className="mt-1 text-sm text-slate-500">Visitante {activeSession.visitor_id} - {formatDateTime(activeSession.timestamp)}</p>
-                <p className="mt-1 text-sm text-slate-600">{humanValue(activeSession.service)} - {activeSession.page_path}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <SourceBadge source={activeSession.source} />
-                <StatusBadge label={mainEventLabel(activeSession)} />
-                <StatusBadge label={activeSession.recording?.status === "available" ? "Grabacion disponible" : "Sin grabacion"} />
-              </div>
+          <div className="bf-panel flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5 text-sm">
+            <span className="font-mono font-semibold text-slate-950" title={activeSession.session_id}>
+              {shortId(activeSession.session_id)}
+            </span>
+            <span className="text-slate-500">{formatDateTime(activeSession.timestamp)}</span>
+            <span className="text-slate-600">{humanValue(activeSession.service)} · {activeSession.page_path}</span>
+            <span className="text-slate-500">{formatDuration(activeSession.duration)}</span>
+            <div className="flex flex-wrap gap-2">
+              <SourceBadge source={activeSession.source} />
+              <StatusBadge label={mainEventLabel(activeSession)} />
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              <KeyValue label="Campana" value={activeSession.attribution.utm_campaign || "Sin campana"} />
-              <KeyValue label="Anuncio / Creativo" value={activeSession.attribution.utm_content || activeSession.attribution.ad_id || "n/a"} />
-              <KeyValue label="Duracion" value={formatDuration(activeSession.duration)} />
-            </div>
+            {activeSession.attribution.utm_campaign ? (
+              <span className="text-slate-500">Campaña: {activeSession.attribution.utm_campaign}</span>
+            ) : null}
           </div>
         </div>
 
@@ -90,7 +86,7 @@ async function GrabacionesContent({ p }: { p: GrabacionesParams }) {
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-mono font-semibold text-slate-950">{session.session_id}</p>
+                    <p className="font-mono font-semibold text-slate-950" title={session.session_id}>{shortId(session.session_id)}</p>
                     <span className="text-xs text-slate-500">{formatDuration(session.duration)}</span>
                   </div>
                   <p className="mt-1 text-slate-600">{humanValue(session.service)} - {session.source}</p>
@@ -189,11 +185,3 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-function KeyValue({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-slate-200 bg-slate-50 p-2.5">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 break-words text-sm font-semibold text-slate-950">{value}</p>
-    </div>
-  );
-}
