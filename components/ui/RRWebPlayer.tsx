@@ -6,8 +6,6 @@ import type { eventWithTime } from "@rrweb/types";
 
 type Props = {
   recordingId: string;
-  width?: number;
-  height?: number;
 };
 
 const CONTROLLER_HEIGHT = 80;

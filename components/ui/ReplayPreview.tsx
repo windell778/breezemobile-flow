@@ -18,7 +18,7 @@ export function ReplayPreview({ session }: ReplayPreviewProps) {
       </div>
 
       {hasRecording ? (
-        <RRWebPlayer recordingId={recordingId} width={1200} height={675} />
+        <RRWebPlayer recordingId={recordingId} />
       ) : (
         <div className="flex aspect-video items-center justify-center bg-[linear-gradient(135deg,#111827,#0f172a_45%,#1d4ed8)]">
           <p className="text-sm text-slate-400">Sin grabación disponible</p>
