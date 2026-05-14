@@ -1,5 +1,5 @@
-import type { Session } from "@/lib/mock-data";
-import { formatDateTime } from "@/lib/labels";
+import type { Session } from "@/lib/data/types";
+import { formatDateTime, formatDuration } from "@/lib/labels";
 
 type ReplayPreviewProps = {
   session: Session;
@@ -17,7 +17,7 @@ export function ReplayPreview({ session }: ReplayPreviewProps) {
       </div>
       <div className="px-4 py-4 text-sm">
         <p className="font-semibold">Sesion {session.session_id}</p>
-        <p className="mt-1 text-slate-300">{session.duration}</p>
+        <p className="mt-1 text-slate-300">{formatDuration(session.duration)}</p>
         <div className="mt-3 h-1.5 rounded-full bg-white/10">
           <div className="h-1.5 w-2/5 rounded-full bg-blue-300" />
         </div>

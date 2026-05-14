@@ -1,15 +1,21 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
-import { allEvents, eventTypes } from "@/lib/mock-data";
+import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
 import { eventLabels, formatDateTime, humanValue } from "@/lib/labels";
+import type { EventName } from "@/lib/data/types";
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+const eventTypes: EventName[] = ["page_view_custom", "service_click", "whatsapp_click"];
+
 export default async function EventosPage({ searchParams }: PageProps) {
   const params = (await searchParams) || {};
   const selectedEvent = String(params.event || "");
+
+  const allEvents = await getAdapter().listEvents(DEFAULT_WORKSPACE_ID);
+
   const counts = eventTypes.map((eventName) => ({
     eventName,
     count: allEvents.filter((event) => event.event_name === eventName).length,

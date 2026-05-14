@@ -3,8 +3,9 @@ import { AppShell } from "@/components/layout/AppShell";
 import { ReplayPreview } from "@/components/ui/ReplayPreview";
 import { SourceBadge } from "@/components/ui/SourceBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { sessions, type Session } from "@/lib/mock-data";
-import { eventLabels, formatDateTime, humanValue } from "@/lib/labels";
+import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
+import type { Session } from "@/lib/data/types";
+import { eventLabels, formatDateTime, formatDuration, humanValue } from "@/lib/labels";
 import { mainEventLabel } from "@/lib/analytics";
 
 type PageProps = {
@@ -13,12 +14,33 @@ type PageProps = {
 
 export default async function GrabacionesPage({ searchParams }: PageProps) {
   const params = (await searchParams) || {};
-  const selectedSessionId = String(params.session || sessions.find((session) => session.recording.available)?.session_id || sessions[0]?.session_id);
   const service = String(params.service || "");
-  const scopedSessions = service ? sessions.filter((session) => session.service === service) : sessions;
-  const activeSession = scopedSessions.find((session) => session.session_id === selectedSessionId) || scopedSessions[0] || sessions[0];
-  const recordings = sessions.filter((session) => session.recording.available);
-  const missing = sessions.length - recordings.length;
+
+  const allSessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID);
+  const scopedSessions = service ? allSessions.filter((s) => s.service === service) : allSessions;
+
+  const selectedSessionId = String(
+    params.session ||
+    scopedSessions.find((s) => s.recording?.status === "available")?.session_id ||
+    scopedSessions[0]?.session_id ||
+    "",
+  );
+
+  const activeSession =
+    scopedSessions.find((s) => s.session_id === selectedSessionId) ||
+    scopedSessions[0] ||
+    allSessions[0];
+
+  const recordings = allSessions.filter((s) => s.recording?.status === "available");
+  const missing = allSessions.length - recordings.length;
+
+  if (!activeSession) {
+    return (
+      <AppShell title="Grabaciones / replay">
+        <p className="text-sm text-slate-500">No hay sesiones disponibles.</p>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell
@@ -41,7 +63,7 @@ export default async function GrabacionesPage({ searchParams }: PageProps) {
 
       <section className="bf-defer mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_390px]">
         <div className="space-y-4">
-          {activeSession.recording.available ? (
+          {activeSession.recording?.status === "available" ? (
             <ReplayPreview session={activeSession} />
           ) : (
             <div className="grid aspect-video place-items-center rounded-md border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500">
@@ -59,13 +81,13 @@ export default async function GrabacionesPage({ searchParams }: PageProps) {
               <div className="flex flex-wrap gap-2">
                 <SourceBadge source={activeSession.source} />
                 <StatusBadge label={mainEventLabel(activeSession)} />
-                <StatusBadge label={activeSession.recording.available ? "Grabacion disponible" : "Sin grabacion"} />
+                <StatusBadge label={activeSession.recording?.status === "available" ? "Grabacion disponible" : "Sin grabacion"} />
               </div>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <KeyValue label="Campana" value={activeSession.attribution.utm_campaign || "Sin campana"} />
               <KeyValue label="Anuncio / Creativo" value={activeSession.attribution.utm_content || activeSession.attribution.ad_id || "n/a"} />
-              <KeyValue label="Duracion" value={activeSession.duration} />
+              <KeyValue label="Duracion" value={formatDuration(activeSession.duration)} />
             </div>
           </div>
         </div>
@@ -85,10 +107,10 @@ export default async function GrabacionesPage({ searchParams }: PageProps) {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-mono font-semibold text-slate-950">{session.session_id}</p>
-                    <span className="text-xs text-slate-500">{session.duration}</span>
+                    <span className="text-xs text-slate-500">{formatDuration(session.duration)}</span>
                   </div>
                   <p className="mt-1 text-slate-600">{humanValue(session.service)} - {session.source}</p>
-                  <p className="mt-1 text-xs text-slate-500">{session.recording.available ? "Con replay" : "Sin replay"} - {session.events.length} eventos</p>
+                  <p className="mt-1 text-xs text-slate-500">{session.recording?.status === "available" ? "Con replay" : "Sin replay"} - {session.events.length} eventos</p>
                 </Link>
               ))}
             </div>

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { SourceBadge } from "@/components/ui/SourceBadge";
-import { sessions, type Source } from "@/lib/mock-data";
+import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
+import type { Session, Source } from "@/lib/data/types";
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -20,7 +21,9 @@ export default async function CampanasPage({ searchParams }: PageProps) {
   const params = (await searchParams) || {};
   const activeDimension = (String(params.dimension || "campaign") as Dimension);
   const safeDimension = dimensions.some((item) => item.key === activeDimension) ? activeDimension : "campaign";
-  const rows = buildAttributionRows(safeDimension);
+
+  const sessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID);
+  const rows = buildAttributionRows(sessions, safeDimension);
 
   return (
     <AppShell
@@ -80,14 +83,14 @@ export default async function CampanasPage({ searchParams }: PageProps) {
   );
 }
 
-function getDimensionValue(session: (typeof sessions)[number], dimension: Dimension) {
+function getDimensionValue(session: Session, dimension: Dimension) {
   if (dimension === "source") return { label: session.source, technical: session.attribution.utm_source || session.source };
   if (dimension === "medium") return { label: session.attribution.utm_medium || "none", technical: session.attribution.utm_medium || "" };
   if (dimension === "content") return { label: session.attribution.utm_content || session.attribution.ad_id || "Sin anuncio", technical: session.attribution.ad_id };
   return { label: session.attribution.utm_campaign || "Sin campana", technical: session.attribution.campaign_id };
 }
 
-function buildAttributionRows(dimension: Dimension) {
+function buildAttributionRows(sessions: Session[], dimension: Dimension) {
   const grouped = sessions.reduce<Record<string, {
     label: string;
     technical: string;

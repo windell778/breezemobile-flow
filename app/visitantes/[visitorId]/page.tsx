@@ -4,8 +4,10 @@ import { AppShell } from "@/components/layout/AppShell";
 import { ReplayPreview } from "@/components/ui/ReplayPreview";
 import { SourceBadge } from "@/components/ui/SourceBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { buildVisitorSummary, getVisitor, getVisitorSessions, mainEventLabel } from "@/lib/analytics";
-import { eventLabels, formatDateTime, humanField, humanValue, readableReferrer } from "@/lib/labels";
+import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
+import type { Session } from "@/lib/data/types";
+import { buildVisitorSummary, mainEventLabel } from "@/lib/analytics";
+import { eventLabels, formatDateTime, formatDuration, humanField, humanValue, readableReferrer } from "@/lib/labels";
 
 type PageProps = {
   params: Promise<{ visitorId: string }>;
@@ -25,12 +27,19 @@ const tabs = [
 export default async function VisitorPage({ params, searchParams }: PageProps) {
   const { visitorId } = await params;
   const query = (await searchParams) || {};
-  const visitor = getVisitor(visitorId);
-  if (!visitor) notFound();
 
-  const visitorSessions = getVisitorSessions(visitorId);
+  const adapter = getAdapter();
+  const workspaceId = DEFAULT_WORKSPACE_ID;
+
+  const [visitor, visitorSessions] = await Promise.all([
+    adapter.getVisitorProfile(workspaceId, visitorId),
+    adapter.getVisitorSessions(workspaceId, visitorId),
+  ]);
+
+  if (!visitor && visitorSessions.length === 0) notFound();
+
   const selectedSessionId = String(query.session || visitorSessions.at(-1)?.session_id || "");
-  const activeSession = visitorSessions.find((session) => session.session_id === selectedSessionId) || visitorSessions.at(-1);
+  const activeSession = visitorSessions.find((s) => s.session_id === selectedSessionId) || visitorSessions.at(-1);
   if (!activeSession) notFound();
 
   const activeTab = String(query.tab || "resumen");
@@ -92,8 +101,9 @@ function HeaderStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SummaryTab({ sessions, activeSession, visitorId }: { sessions: ReturnType<typeof getVisitorSessions>; activeSession: ReturnType<typeof getVisitorSessions>[number]; visitorId: string }) {
+function SummaryTab({ sessions, activeSession, visitorId }: { sessions: Session[]; activeSession: Session; visitorId: string }) {
   const importantEvents = sessions.flatMap((session) => session.events.filter((event) => event.event_name !== "page_view_custom")).slice(-4);
+  const hasRecording = activeSession.recording?.status === "available";
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
@@ -105,7 +115,7 @@ function SummaryTab({ sessions, activeSession, visitorId }: { sessions: ReturnTy
         <div className="mt-4 flex flex-wrap gap-2">
           <SourceBadge source={activeSession.source} />
           <StatusBadge label={`${activeSession.intent_level} intencion`} />
-          <StatusBadge label={activeSession.recording.available ? "Grabacion disponible" : "Sin grabacion"} />
+          <StatusBadge label={hasRecording ? "Grabacion disponible" : "Sin grabacion"} />
         </div>
       </div>
 
@@ -115,9 +125,9 @@ function SummaryTab({ sessions, activeSession, visitorId }: { sessions: ReturnTy
           <KeyValue label="Pagina" value={activeSession.page_path} />
           <KeyValue label="Campana" value={activeSession.attribution.utm_campaign || "Sin campana"} />
           <KeyValue label="Evento principal" value={mainEventLabel(activeSession)} />
-          <KeyValue label="Duracion" value={activeSession.duration} />
+          <KeyValue label="Duracion" value={formatDuration(activeSession.duration)} />
         </div>
-        {activeSession.recording.available ? (
+        {hasRecording ? (
           <Link href={`/visitantes/${visitorId}?session=${activeSession.session_id}&tab=grabaciones`} className="bf-control mt-4 border-slate-950 bg-slate-950 text-white hover:bg-slate-800">
             Abrir grabacion
           </Link>
@@ -140,8 +150,10 @@ function SummaryTab({ sessions, activeSession, visitorId }: { sessions: ReturnTy
   );
 }
 
-function RecordingsTab({ sessions, visitorId, activeSessionId }: { sessions: ReturnType<typeof getVisitorSessions>; visitorId: string; activeSessionId: string }) {
-  const featured = sessions.find((session) => session.session_id === activeSessionId && session.recording.available) || sessions.find((session) => session.recording.available);
+function RecordingsTab({ sessions, visitorId, activeSessionId }: { sessions: Session[]; visitorId: string; activeSessionId: string }) {
+  const featured =
+    sessions.find((s) => s.session_id === activeSessionId && s.recording?.status === "available") ||
+    sessions.find((s) => s.recording?.status === "available");
 
   return (
     <div className="grid gap-4 xl:grid-cols-[1.1fr_1fr]">
@@ -157,9 +169,9 @@ function RecordingsTab({ sessions, visitorId, activeSessionId }: { sessions: Ret
             >
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium text-slate-950">Sesion {session.session_id}</p>
-                <StatusBadge label={session.recording.available ? "Grabacion disponible" : "Sin grabacion"} />
+                <StatusBadge label={session.recording?.status === "available" ? "Grabacion disponible" : "Sin grabacion"} />
               </div>
-              <p className="mt-1 text-sm text-slate-500">{session.page_path} · {session.duration}</p>
+              <p className="mt-1 text-sm text-slate-500">{session.page_path} · {formatDuration(session.duration)}</p>
             </Link>
           ))}
         </div>
@@ -168,8 +180,8 @@ function RecordingsTab({ sessions, visitorId, activeSessionId }: { sessions: Ret
   );
 }
 
-function JourneyTab({ sessions }: { sessions: ReturnType<typeof getVisitorSessions> }) {
-  const steps: { key: string; title: string; timestamp: string; session: (typeof sessions)[number]; detail?: string }[] = sessions.flatMap((session) => [
+function JourneyTab({ sessions }: { sessions: Session[] }) {
+  const steps: { key: string; title: string; timestamp: string; session: Session; detail?: string }[] = sessions.flatMap((session) => [
     { key: `${session.session_id}-entry`, title: `Entrada desde ${session.source}`, timestamp: session.timestamp, session },
     ...session.events.map((event) => ({ key: event.event_id, title: eventLabels[event.event_name], timestamp: event.timestamp, session, detail: event.cta_text })),
   ]);
@@ -193,7 +205,7 @@ function JourneyTab({ sessions }: { sessions: ReturnType<typeof getVisitorSessio
   );
 }
 
-function SessionsTab({ sessions, visitorId, activeSessionId }: { sessions: ReturnType<typeof getVisitorSessions>; visitorId: string; activeSessionId: string }) {
+function SessionsTab({ sessions, visitorId, activeSessionId }: { sessions: Session[]; visitorId: string; activeSessionId: string }) {
   return (
     <div className="space-y-3">
       {sessions.map((session) => (
@@ -214,8 +226,8 @@ function SessionsTab({ sessions, visitorId, activeSessionId }: { sessions: Retur
   );
 }
 
-function EventsTab({ sessions, activeSessionId }: { sessions: ReturnType<typeof getVisitorSessions>; activeSessionId: string }) {
-  const activeEvents = sessions.flatMap((session) => session.events).filter((event) => event.session_id === activeSessionId);
+function EventsTab({ sessions, activeSessionId }: { sessions: Session[]; activeSessionId: string }) {
+  const activeEvents = sessions.flatMap((s) => s.events).filter((e) => e.session_id === activeSessionId);
 
   return (
     <div className="bf-panel overflow-hidden">
@@ -232,7 +244,7 @@ function EventsTab({ sessions, activeSessionId }: { sessions: ReturnType<typeof 
   );
 }
 
-function AttributionTab({ session }: { session: ReturnType<typeof getVisitorSessions>[number] }) {
+function AttributionTab({ session }: { session: Session }) {
   const fields = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "campaign_id", "adset_id", "ad_id", "referrer"];
 
   return (
@@ -246,7 +258,7 @@ function AttributionTab({ session }: { session: ReturnType<typeof getVisitorSess
   );
 }
 
-function TechnicalTab({ session }: { session: ReturnType<typeof getVisitorSessions>[number] }) {
+function TechnicalTab({ session }: { session: Session }) {
   return (
     <div className="space-y-4">
       <div className="bf-panel p-4">

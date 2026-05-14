@@ -22,9 +22,9 @@ export function Sidebar() {
         <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-semibold text-slate-800">Fuente V0</p>
-            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Activo</span>
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">{process.env.DATA_SOURCE === "posthog" ? "PostHog" : "Mock"}</span>
           </div>
-          <p className="mt-1 text-xs leading-5 text-slate-500">Mock compatible con PostHog API. GTM/dataLayer valida el contrato.</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">{process.env.DATA_SOURCE === "posthog" ? "Datos reales via PostHog API." : "Mock compatible con PostHog API."} GTM/dataLayer valida el contrato.</p>
         </div>
       </div>
     </aside>

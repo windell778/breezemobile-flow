@@ -231,12 +231,6 @@ class PostHogAdapter implements DataAdapter {
     private readonly host: string,
   ) {}
 
-  private notImplemented(method: string): never {
-    throw new Error(
-      `PostHogAdapter.${method}: not yet connected. Set DATA_SOURCE=mock for local dev.`,
-    );
-  }
-
   async getVisitorProfile(workspaceId: string, visitorId: string) {
     const { fetchVisitorProfile } = await import("@/lib/posthog/persons");
     return fetchVisitorProfile(this.projectId, this.apiKey, this.host, workspaceId, visitorId);
@@ -262,34 +256,34 @@ class PostHogAdapter implements DataAdapter {
     return getRecordingStreamUrl(workspaceId, recordingId);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async listSessions(_workspaceId: string, _filters?: SessionFilters): Promise<Session[]> {
-    this.notImplemented("listSessions");
+  async listSessions(workspaceId: string, filters?: SessionFilters): Promise<Session[]> {
+    const { listSessionsHogQL } = await import("@/lib/posthog/hogql");
+    return listSessionsHogQL(this.projectId, this.apiKey, this.host, workspaceId, filters);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async listEvents(_workspaceId: string, _filters?: EventFilters): Promise<TrackingEvent[]> {
-    this.notImplemented("listEvents");
+  async listEvents(workspaceId: string, filters?: EventFilters): Promise<TrackingEvent[]> {
+    const { listEventsHogQL } = await import("@/lib/posthog/hogql");
+    return listEventsHogQL(this.projectId, this.apiKey, this.host, workspaceId, filters);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async getTrackingHealth(_workspaceId: string): Promise<TrackingHealth[]> {
-    this.notImplemented("getTrackingHealth");
+  async getTrackingHealth(workspaceId: string): Promise<TrackingHealth[]> {
+    const { getTrackingHealthStatic } = await import("@/lib/posthog/hogql");
+    return getTrackingHealthStatic(workspaceId);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async getCampaignSummaries(_workspaceId: string): Promise<CampaignSummary[]> {
-    this.notImplemented("getCampaignSummaries");
+  async getCampaignSummaries(workspaceId: string): Promise<CampaignSummary[]> {
+    const { getCampaignSummariesHogQL } = await import("@/lib/posthog/hogql");
+    return getCampaignSummariesHogQL(this.projectId, this.apiKey, this.host, workspaceId);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async getServiceSummaries(_workspaceId: string): Promise<ServicePageSummary[]> {
-    this.notImplemented("getServiceSummaries");
+  async getServiceSummaries(workspaceId: string): Promise<ServicePageSummary[]> {
+    const { getServiceSummariesHogQL } = await import("@/lib/posthog/hogql");
+    return getServiceSummariesHogQL(this.projectId, this.apiKey, this.host, workspaceId);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async getDashboardMetrics(_workspaceId: string): Promise<DashboardMetrics> {
-    this.notImplemented("getDashboardMetrics");
+  async getDashboardMetrics(workspaceId: string): Promise<DashboardMetrics> {
+    const { getDashboardMetricsHogQL } = await import("@/lib/posthog/hogql");
+    return getDashboardMetricsHogQL(this.projectId, this.apiKey, this.host, workspaceId);
   }
 }
 

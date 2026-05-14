@@ -1,10 +1,15 @@
+export const dynamic = "force-dynamic";
+
 import { AppShell } from "@/components/layout/AppShell";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { eventTypes, serviceKeys, trackingFields, trackingHealth } from "@/lib/mock-data";
+import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
+import { eventTypes, serviceKeys, trackingFields } from "@/lib/mock-data";
 import { eventLabels, humanField, humanValue } from "@/lib/labels";
 import type { ReactNode } from "react";
 
-export default function TrackingPage() {
+export default async function TrackingPage() {
+  const trackingHealth = await getAdapter().getTrackingHealth(DEFAULT_WORKSPACE_ID);
+
   return (
     <AppShell
       title="Tracking Health"

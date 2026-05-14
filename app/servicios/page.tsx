@@ -1,9 +1,13 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
-import { servicePageSummaries } from "@/lib/mock-data";
+import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
 import { humanValue } from "@/lib/labels";
 
-export default function ServiciosPage() {
+export default async function ServiciosPage() {
+  const servicePageSummaries = await getAdapter().getServiceSummaries(DEFAULT_WORKSPACE_ID);
+
   return (
     <AppShell
       title="Paginas y servicios"

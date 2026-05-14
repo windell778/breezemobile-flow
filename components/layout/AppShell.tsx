@@ -25,7 +25,7 @@ export function AppShell({ children, title = "BreezeMobile Flow Intelligence", d
                 {description ? <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">{description}</p> : null}
               </div>
               <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-500">
-                Mock compatible con PostHog API
+                {process.env.DATA_SOURCE === "posthog" ? "PostHog" : "Mock"}
               </div>
             </header>
             {children}

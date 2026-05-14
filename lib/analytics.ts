@@ -1,20 +1,5 @@
-import { allEvents, campaignSummaries, sessions, servicePageSummaries, visitors } from "@/lib/mock-data";
-import type { EventName, Session, Visitor } from "@/lib/mock-data";
+import type { EventName, Session } from "@/lib/data/types";
 import { eventLabels } from "@/lib/labels";
-
-export function getSession(sessionId: string) {
-  return sessions.find((session) => session.session_id === sessionId);
-}
-
-export function getVisitor(visitorId: string): Visitor | undefined {
-  return visitors.find((visitor) => visitor.visitor_id === visitorId);
-}
-
-export function getVisitorSessions(visitorId: string) {
-  return sessions
-    .filter((session) => session.visitor_id === visitorId)
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-}
 
 export function sessionHasEvent(session: Session, eventName: EventName) {
   return session.events.some((event) => event.event_name === eventName);
@@ -30,24 +15,6 @@ export function mainEventLabel(session: Session) {
   const eventName = mainEvent(session);
   if (eventName === "page_view_custom" && session.events.length === 1) return "Sin interaccion";
   return eventLabels[eventName];
-}
-
-export function getDashboardMetrics() {
-  const whatsappClicks = allEvents.filter((event) => event.event_name === "whatsapp_click").length;
-  const serviceClicks = allEvents.filter((event) => event.event_name === "service_click").length;
-  const recordings = sessions.filter((session) => session.recording.available).length;
-
-  return {
-    sessions: sessions.length,
-    visitors: visitors.length,
-    events: allEvents.length,
-    whatsappClicks,
-    serviceClicks,
-    recordings,
-    replayRate: Math.round((recordings / sessions.length) * 100),
-    topCampaign: campaignSummaries[0],
-    topService: servicePageSummaries[0],
-  };
 }
 
 export function buildVisitorSummary(visitorSessions: Session[]) {
@@ -74,8 +41,8 @@ export function buildVisitorSummary(visitorSessions: Session[]) {
 
 export function getPostHogAdapterNotes() {
   return [
-    "PostHog sera la fuente primaria para eventos, visitantes, sesiones y grabaciones.",
-    "Las consultas deben vivir en route handlers del servidor para no exponer personal API keys.",
-    "La UI actual usa mocks con la misma forma esperada para poder cambiar la fuente despues.",
+    "PostHog es la fuente primaria para eventos, visitantes, sesiones y grabaciones.",
+    "Las consultas viven en route handlers del servidor para no exponer personal API keys.",
+    "La UI usa el adaptador canonico: DATA_SOURCE=posthog activa datos reales, mock activa datos locales.",
   ];
 }
