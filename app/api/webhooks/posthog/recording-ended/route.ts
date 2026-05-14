@@ -86,8 +86,18 @@ export async function POST(req: NextRequest) {
     );
 
     const byWindow = await downloadSnapshots(projectId, apiKey, host, recordingId);
-    // Flatten all windows into a single array for storage — order by window key.
-    const events = Object.values(byWindow).flat();
+    const windowIds = Object.keys(byWindow);
+
+    // Store only the primary window (most events), same selection logic as the
+    // snapshots route. Flattening all windows would mix events from independent
+    // DOM trees and reintroduce "setAttribute is not a function" when the stored
+    // events are later fed to rrweb-player.
+    const primaryWindow = windowIds.length
+      ? windowIds.reduce((best, id) =>
+          (byWindow[id]?.length ?? 0) > (byWindow[best]?.length ?? 0) ? id : best,
+        )
+      : null;
+    const events = primaryWindow ? (byWindow[primaryWindow] ?? []) : [];
 
     if (!events.length) {
       console.warn(`[webhook] No events found for recording ${recordingId}`);

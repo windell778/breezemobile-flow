@@ -254,28 +254,54 @@ las dos visitas juntas. Esto es esperado y no es un bug.
 
 ---
 
-## 9. Flujo objetivo (no implementado aún)
+## 9. Múltiples FullSnapshots dentro de la misma ventana
 
-El `plan.md` describe un flujo donde las grabaciones se descargan una
-vez vía webhook y se almacenan en Cloudflare R2. Ese flujo tiene
-ventajas:
+El diseño de `window_id` previene el crash cuando los FullSnapshots vienen
+de ventanas distintas. Pero dentro de una sola ventana también pueden
+existir múltiples FullSnapshots (por ejemplo, si rrweb reinicia la
+grabación tras un período de inactividad o una recarga de página sin
+nueva pestaña).
 
-- Menor latencia al abrir una grabación (ya está descargada)
-- No depende de la disponibilidad de PostHog en tiempo de visualización
-- Menor consumo de la API de PostHog
+En la versión actual, una sola ventana con múltiples FullSnapshots se
+pasa íntegra al player. rrweb maneja correctamente este caso en la
+mayoría de las versiones: al encontrar un nuevo type 2, reconstruye el
+DOM desde cero con `mirror.reset()`.
 
-El webhook handler existe en
-`app/api/webhooks/posthog/recording-ended/route.ts` pero actualmente
-descarga y luego no almacena nada (R2 no está configurado). Está
-preparado para cuando se active el storage.
-
-Mientras R2 no esté activo, el sistema funciona correctamente
-descargando en tiempo real. La diferencia es latencia (1-3 segundos
-de espera al abrir una grabación).
+**Si reaparece un crash en grabaciones de una sola ventana**, el siguiente
+paso es segmentar los eventos por bloque de FullSnapshot: dividir en
+`[type2_events..., hasta_el_siguiente_type2]` y reproducir un bloque a
+la vez. Eso eliminaría cualquier ambigüedad residual de IDs entre
+snapshots consecutivos.
 
 ---
 
-## 10. Qué no tocar sin revisar este documento
+## 10. Flujo objetivo con R2 — webhook y almacenamiento
+
+El `plan.md` describe un flujo donde las grabaciones se descargan una
+vez vía webhook y se almacenan en Cloudflare R2:
+
+- Menor latencia al abrir una grabación (ya está descargada)
+- No depende de la disponibilidad de PostHog en tiempo real
+- Menor consumo de la API de PostHog
+
+El webhook handler existe en
+`app/api/webhooks/posthog/recording-ended/route.ts`. Actualmente
+descarga los eventos pero no los almacena (R2 no está configurado).
+Mientras R2 no esté activo, el sistema funciona descargando en tiempo
+real con 1-3 segundos de latencia al abrir una grabación.
+
+### ⚠️ Antes de activar R2
+
+El webhook almacena **solo el `window_id` con más eventos** (la ventana
+principal). Esto es correcto y consistente con lo que sirve la route de
+snapshots. No cambiar esto a "aplanar todas las ventanas" — mezclar
+`window_id` en el JSON almacenado reintroduciría el crash
+`setAttribute is not a function` cuando esos eventos se lean de R2 y
+se pasen al player.
+
+---
+
+## 11. Qué no tocar sin revisar este documento
 
 | Qué | Por qué |
 |---|---|
@@ -284,3 +310,4 @@ de espera al abrir una grabación).
 | `sanitizeNode()` en FullSnapshot | Eliminarla causa crash con "Cannot read properties of undefined" |
 | `person_uuid` en `/session_recordings/` | Cambiar a `distinct_id` causa 400 |
 | `POSTHOG_API_KEY` solo en servidor | Exposición en cliente compromete toda la cuenta PostHog |
+| Lógica de ventana primaria en webhook | Aplanar todas las ventanas rompe R2 cuando se active |

@@ -56,7 +56,24 @@ Fase 0 (tracking confiable) está parcialmente validada:
 
 ---
 
-## 5. Lo que NO existe todavía
+## 5. Alcance real de herramientas de diagnóstico
+
+**Tracking Health (`/tracking`)** — muestra una guía de referencia del
+contrato de tracking formateada para la UI. **No audita datos reales.**
+No verifica que los eventos en PostHog tengan todos los campos correctos,
+ni valida GTM, dataLayer ni Meta Pixel. Es documentación interactiva,
+no un validador automático.
+
+**Diagnóstico (`/api/diagnostics/posthog`)** — verifica que la conexión
+con PostHog funciona y devuelve una muestra cruda. No valida campos
+individuales por evento, ni el formato de `visitor_id`/`session_id`,
+ni que los UTMs llegan correctamente. Para validación real del contrato,
+hacer una visita de prueba con URL con parámetros `?utm_source=test&...`
+y revisar manualmente en PostHog.
+
+---
+
+## 6. Lo que NO existe todavía
 
 - UTMs reales en datos — validar con una URL de campaña con parámetros
 - Autenticación
