@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { SourceBadge } from "@/components/ui/SourceBadge";
@@ -19,13 +20,71 @@ const dimensions: { key: Dimension; label: string; caption: string }[] = [
   { key: "content", label: "Anuncio / Creativo", caption: "utm_content o ad_id" },
 ];
 
+async function AttributionTable({ dimension }: { dimension: Dimension }) {
+  const sessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID);
+  const rows = buildAttributionRows(sessions, dimension);
+
+  return (
+    <section className="bf-panel bf-defer mt-4 overflow-hidden">
+      <div className="grid border-b border-slate-200 bg-slate-50/80 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 md:grid-cols-[1.2fr_120px_120px_140px_120px_120px]">
+        <span>Dimension</span>
+        <span>Fuente</span>
+        <span>Sesiones</span>
+        <span>Service clicks</span>
+        <span>WhatsApp</span>
+        <span>Tasa WA</span>
+      </div>
+      {rows.map((row) => (
+        <article key={row.key} className="bf-row grid gap-3 px-3 py-2.5 text-sm md:grid-cols-[1.2fr_120px_120px_140px_120px_120px] md:items-center">
+          <div>
+            <p className="font-semibold text-slate-950">{row.label}</p>
+            <p className="mt-1 font-mono text-xs text-slate-500">{row.technical || "sin valor tecnico"}</p>
+          </div>
+          <SourceBadge source={row.source} />
+          <span className="font-semibold text-slate-950">{row.sessions}</span>
+          <span className="text-slate-700">{row.serviceClicks}</span>
+          <span className="font-semibold text-blue-700">{row.whatsappClicks}</span>
+          <span className="text-slate-700">
+            {row.rate}%
+            <Link href={`/sesiones?q=${encodeURIComponent(row.label)}`} className="mt-1 block text-xs font-medium text-blue-700 hover:underline">
+              Ver sesiones
+            </Link>
+          </span>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function AttributionTableLoading() {
+  return (
+    <section className="bf-panel bf-defer mt-4 overflow-hidden">
+      <div className="grid border-b border-slate-200 bg-slate-50/80 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 md:grid-cols-[1.2fr_120px_120px_140px_120px_120px]">
+        <span>Dimension</span>
+        <span>Fuente</span>
+        <span>Sesiones</span>
+        <span>Service clicks</span>
+        <span>WhatsApp</span>
+        <span>Tasa WA</span>
+      </div>
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="animate-pulse border-b border-slate-100 px-3 py-3">
+          <div className="flex gap-4">
+            <div className="h-4 w-32 rounded bg-slate-200" />
+            <div className="h-4 w-20 rounded bg-slate-200" />
+            <div className="h-4 w-16 rounded bg-slate-200" />
+            <div className="h-4 w-16 rounded bg-slate-200" />
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 export default async function CampanasPage({ searchParams }: PageProps) {
   const params = (await searchParams) || {};
   const activeDimension = (String(params.dimension || "campaign") as Dimension);
   const safeDimension = dimensions.some((item) => item.key === activeDimension) ? activeDimension : "campaign";
-
-  const sessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID);
-  const rows = buildAttributionRows(sessions, safeDimension);
 
   return (
     <AppShell
@@ -49,34 +108,9 @@ export default async function CampanasPage({ searchParams }: PageProps) {
         <p className="mt-3 text-sm text-slate-500">{dimensions.find((item) => item.key === safeDimension)?.caption}</p>
       </section>
 
-      <section className="bf-panel bf-defer mt-4 overflow-hidden">
-        <div className="grid border-b border-slate-200 bg-slate-50/80 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 md:grid-cols-[1.2fr_120px_120px_140px_120px_120px]">
-          <span>Dimension</span>
-          <span>Fuente</span>
-          <span>Sesiones</span>
-          <span>Service clicks</span>
-          <span>WhatsApp</span>
-          <span>Tasa WA</span>
-        </div>
-        {rows.map((row) => (
-          <article key={row.key} className="bf-row grid gap-3 px-3 py-2.5 text-sm md:grid-cols-[1.2fr_120px_120px_140px_120px_120px] md:items-center">
-            <div>
-              <p className="font-semibold text-slate-950">{row.label}</p>
-              <p className="mt-1 font-mono text-xs text-slate-500">{row.technical || "sin valor tecnico"}</p>
-            </div>
-            <SourceBadge source={row.source} />
-            <span className="font-semibold text-slate-950">{row.sessions}</span>
-            <span className="text-slate-700">{row.serviceClicks}</span>
-            <span className="font-semibold text-blue-700">{row.whatsappClicks}</span>
-            <span className="text-slate-700">
-              {row.rate}%
-              <Link href={`/sesiones?q=${encodeURIComponent(row.label)}`} className="mt-1 block text-xs font-medium text-blue-700 hover:underline">
-                Ver sesiones
-              </Link>
-            </span>
-          </article>
-        ))}
-      </section>
+      <Suspense fallback={<AttributionTableLoading />}>
+        <AttributionTable dimension={safeDimension} />
+      </Suspense>
 
       <section className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">
         Esta vista no muestra costo por lead todavia. Esa capa debe entrar cuando conectemos Meta Ads y podamos cruzar gasto con eventos reales.
