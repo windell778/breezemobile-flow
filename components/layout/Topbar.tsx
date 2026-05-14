@@ -15,7 +15,7 @@ export function Topbar() {
           <form action="/sesiones" className="hidden min-w-44 flex-1 md:block">
             <input
               name="q"
-              placeholder="Buscar sesion, visitante o campana..."
+              placeholder="Buscar en sesiones..."
               className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
             />
           </form>

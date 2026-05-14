@@ -2,32 +2,32 @@ import type { EventName, ServiceKey } from "@/lib/data/types";
 
 export const fieldLabels: Record<string, string> = {
   visitor_id: "Visitante",
-  session_id: "Sesion",
+  session_id: "Sesión",
   event_name: "Evento",
   event_id: "ID de evento",
-  page_path: "Pagina",
-  page_title: "Titulo de pagina",
-  page_url: "URL de pagina",
+  page_path: "Página",
+  page_title: "Título de página",
+  page_url: "URL de página",
   service: "Servicio",
   source: "Fuente",
   utm_source: "Fuente",
   utm_medium: "Medio",
-  utm_campaign: "Campana",
+  utm_campaign: "Campaña",
   utm_content: "Anuncio / Creativo",
-  utm_term: "Termino / Segmento",
-  campaign_id: "ID de campana",
+  utm_term: "Término / Segmento",
+  campaign_id: "ID de campaña",
   adset_id: "ID de conjunto",
   ad_id: "ID de anuncio",
   cta_text: "CTA tocado",
-  cta_location: "Ubicacion del CTA",
+  cta_location: "Ubicación del CTA",
   link_url: "Destino",
   timestamp: "Fecha y hora",
-  duration: "Duracion",
+  duration: "Duración",
   referrer: "Referencia",
 };
 
 export const eventLabels: Record<EventName, string> = {
-  page_view_custom: "Pagina vista",
+  page_view_custom: "Página vista",
   service_click: "Click en servicio",
   whatsapp_click: "Click en WhatsApp",
 };
@@ -36,7 +36,7 @@ export const serviceLabels: Record<ServiceKey, string> = {
   aire_acondicionado: "Aire acondicionado",
   cambio_aceite: "Cambio de aceite",
   frenos: "Frenos",
-  suspension: "Suspension",
+  suspension: "Suspensión",
   general: "General",
 };
 
@@ -54,6 +54,12 @@ export function humanValue(value: string | boolean | null | undefined) {
   if (value === "cpc") return "CPC";
   if (value === "seo") return "SEO";
   return String(value).replaceAll("_", " ");
+}
+
+// Returns the first 8 characters of an ID for display purposes.
+// The full ID is always preserved in href, title attributes, and technical views.
+export function shortId(id: string): string {
+  return id.slice(0, 8);
 }
 
 export function formatDateTime(value: string) {
