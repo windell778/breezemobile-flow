@@ -125,14 +125,17 @@ export async function downloadSnapshots(
             const trimmed = line.trim();
             if (!trimmed) continue;
             try {
-              const parsed = JSON.parse(trimmed) as Record<string, unknown>;
-              const props = parsed?.properties as Record<string, unknown> | undefined;
+              const parsed = JSON.parse(trimmed) as unknown;
+              // PostHog blob_v2 NDJSON format: each line is [recording_id, rrweb_event]
+              const event = Array.isArray(parsed) ? (parsed as unknown[])[1] : parsed;
+              const ev = event as Record<string, unknown> | undefined;
+              const props = ev?.properties as Record<string, unknown> | undefined;
               if (Array.isArray(props?.["$snapshot_items"])) {
                 events.push(...(props["$snapshot_items"] as unknown[]));
-              } else if (parsed?.type !== undefined) {
-                events.push(parsed);
-              } else if (Array.isArray(parsed?.data)) {
-                events.push(...(parsed.data as unknown[]));
+              } else if (ev?.type !== undefined) {
+                events.push(ev);
+              } else if (Array.isArray(ev?.data)) {
+                events.push(...(ev.data as unknown[]));
               }
             } catch {
               // skip malformed line
