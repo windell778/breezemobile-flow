@@ -1,6 +1,7 @@
 // PostHog Session Recordings API — server-side only.
 // Handles fetching recording metadata and downloading rrweb snapshots.
 
+import { gunzipSync } from "zlib";
 import type { RecordingRef } from "@/lib/data/types";
 import { PostHogClient } from "@/lib/posthog/client";
 import {
@@ -8,6 +9,29 @@ import {
   type PHRecordingsResponse,
 } from "@/lib/posthog/normalizer";
 import { getStorageKey } from "@/lib/storage/recordings";
+
+// PostHog compresses FullSnapshot (type 2) and large incremental snapshot data
+// as base64-encoded gzip. Decompress on the server so rrweb-player receives
+// plain JSON objects.
+function decompressEventData(data: unknown): unknown {
+  if (typeof data !== "string") return data;
+  try {
+    const buf = Buffer.from(data, "base64");
+    if (buf.length >= 2 && buf[0] === 0x1f && buf[1] === 0x8b) {
+      return JSON.parse(gunzipSync(buf).toString("utf8")) as unknown;
+    }
+  } catch {
+    // not gzip base64 — return as-is
+  }
+  return data;
+}
+
+function normalizeRRWebEvent(ev: Record<string, unknown>): Record<string, unknown> {
+  if (typeof ev.data === "string") {
+    return { ...ev, data: decompressEventData(ev.data) };
+  }
+  return ev;
+}
 
 export async function fetchVisitorRecordings(
   projectId: string,
@@ -131,9 +155,11 @@ export async function downloadSnapshots(
               const ev = event as Record<string, unknown> | undefined;
               const props = ev?.properties as Record<string, unknown> | undefined;
               if (Array.isArray(props?.["$snapshot_items"])) {
-                events.push(...(props["$snapshot_items"] as unknown[]));
+                events.push(
+                  ...(props["$snapshot_items"] as Record<string, unknown>[]).map(normalizeRRWebEvent),
+                );
               } else if (ev?.type !== undefined) {
-                events.push(ev);
+                events.push(normalizeRRWebEvent(ev));
               } else if (Array.isArray(ev?.data)) {
                 events.push(...(ev.data as unknown[]));
               }
