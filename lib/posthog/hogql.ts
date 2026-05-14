@@ -50,6 +50,21 @@ function num(val: unknown): number {
   return isNaN(n) ? 0 : n;
 }
 
+function inferSource(r: Record<string, unknown>): Source {
+  const medium = str(r.utm_medium).toLowerCase();
+  const src = str(r.utm_source).toLowerCase();
+  if (medium === "paid_social" || src === "facebook" || src === "instagram") return "Meta Ads";
+  if (medium === "cpc" || src === "google") return "Google Ads";
+  if (medium === "seo" || medium === "organic" || src === "organic") return "Organic";
+  return "Direct";
+}
+
+function inferIntentLevel(events: TrackingEvent[]): IntentLevel {
+  if (events.some((e) => e.event_name === "whatsapp_click")) return "Alta";
+  if (events.some((e) => e.event_name === "service_click")) return "Media";
+  return "Baja";
+}
+
 function buildAttribution(r: Record<string, unknown>): Attribution {
   return {
     utm_source: str(r.utm_source),
@@ -115,7 +130,7 @@ function rowToEvent(workspaceId: string, r: Record<string, unknown>): TrackingEv
     cta_text: str(r.cta_text) || undefined,
     cta_location: str(r.cta_location) || undefined,
     link_url: str(r.link_url) || undefined,
-    source: (str(r.source) || "Direct") as Source,
+    source: inferSource(r),
     attribution: buildAttribution(r),
     payload: {},
   };
@@ -151,14 +166,14 @@ export async function listSessionsHogQL(
         workspace_id: workspaceId,
         visitor_id: str(r.visitor_id),
         session_id: sessionId,
-        source: (str(r.source) || "Direct") as Source,
+        source: inferSource(r),
         service: (str(r.service) || "general") as ServiceKey,
         page_path: str(r.page_path) || "/",
         page_title: str(r.page_title),
         page_url: str(r.page_url),
         timestamp: str(r.ts),
         duration: null,
-        intent_level: (str(r.intent_level) || "Baja") as IntentLevel,
+        intent_level: "Baja",
         attribution: buildAttribution(r),
         recording: null,
         events: [],
@@ -175,6 +190,11 @@ export async function listSessionsHogQL(
       session.timestamp = new Date(Math.min(...timestamps)).toISOString();
     }
     session.events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    session.intent_level = inferIntentLevel(session.events);
+    // Use first event's source in case per-event source differs within a session.
+    if (session.events[0]) {
+      session.source = session.events[0].source;
+    }
   }
 
   let sessions = Array.from(sessionMap.values()).sort(
