@@ -16,12 +16,18 @@ import { getStorageKey } from "@/lib/storage/recordings";
 function decompressEventData(data: unknown): unknown {
   if (typeof data !== "string") return data;
   try {
-    const buf = Buffer.from(data, "base64");
+    // PostHog stores gzip data as a binary/latin1 string, not base64.
+    const buf = Buffer.from(data, "latin1");
     if (buf.length >= 2 && buf[0] === 0x1f && buf[1] === 0x8b) {
       return JSON.parse(gunzipSync(buf).toString("utf8")) as unknown;
     }
+    // Fallback: try base64 in case encoding varies across PostHog versions.
+    const b64 = Buffer.from(data, "base64");
+    if (b64.length >= 2 && b64[0] === 0x1f && b64[1] === 0x8b) {
+      return JSON.parse(gunzipSync(b64).toString("utf8")) as unknown;
+    }
   } catch {
-    // not gzip base64 — return as-is
+    // not gzip — return as-is
   }
   return data;
 }
