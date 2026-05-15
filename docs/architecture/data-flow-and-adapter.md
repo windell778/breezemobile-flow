@@ -86,7 +86,8 @@ servidor** agrupando eventos por `session_id`.
 4. Por cada grupo → construir Session:
    - timestamp    = min(event.timestamp) del grupo
    - duration     = null (PostHog Events API no devuelve duración de sesión)
-   - intent_level = inferido: whatsapp_click→Alta, service_click→Media, else Baja
+   - intent_level = inferido via `inferIntentLevel(events, DEFAULT_WORKSPACE_CONFIG)` en `lib/workspace-config.ts`
+                   En workspace BreezeMobile: whatsapp_click→Alta, service_click→Media, else Baja
    - source       = inferido: de utm_medium/utm_source del primer evento
    - attribution  = campos UTM del primer evento del grupo
    - recording    = cruzado desde fetchRecordingsMap() si existe

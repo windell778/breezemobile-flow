@@ -1,14 +1,13 @@
 import type { EventName, Session } from "@/lib/data/types";
 import { eventLabels } from "@/lib/labels";
+import { DEFAULT_WORKSPACE_CONFIG, mainEventForSession } from "@/lib/workspace-config";
 
 export function sessionHasEvent(session: Session, eventName: EventName) {
   return session.events.some((event) => event.event_name === eventName);
 }
 
 export function mainEvent(session: Session): EventName {
-  if (sessionHasEvent(session, "whatsapp_click")) return "whatsapp_click";
-  if (sessionHasEvent(session, "service_click")) return "service_click";
-  return "page_view_custom";
+  return mainEventForSession(session.events, DEFAULT_WORKSPACE_CONFIG);
 }
 
 export function mainEventLabel(session: Session) {
@@ -20,8 +19,13 @@ export function mainEventLabel(session: Session) {
 export function buildVisitorSummary(visitorSessions: Session[]) {
   const first = visitorSessions[0];
   const last = visitorSessions[visitorSessions.length - 1];
-  const hasWhatsapp = visitorSessions.some((session) => sessionHasEvent(session, "whatsapp_click"));
-  const hasService = visitorSessions.some((session) => sessionHasEvent(session, "service_click"));
+  const config = DEFAULT_WORKSPACE_CONFIG;
+  const hasHighIntent = visitorSessions.some((session) =>
+    session.events.some((e) => config.semanticRules.highIntentSignal.includes(e.event_name))
+  );
+  const hasService = visitorSessions.some((session) =>
+    session.events.some((e) => config.intentRules.medium.includes(e.event_name))
+  );
   const services = visitorSessions.reduce<Record<string, number>>((acc, session) => {
     acc[session.service] = (acc[session.service] || 0) + 1;
     return acc;
@@ -35,7 +39,7 @@ export function buildVisitorSummary(visitorSessions: Session[]) {
     firstSource: first?.source || "Direct",
     lastSource: last?.source || "Direct",
     lastEvent: last ? mainEvent(last) : "page_view_custom",
-    state: hasWhatsapp ? "Alta intencion" : hasService ? "Media intencion" : "Sin interaccion",
+    state: hasHighIntent ? "Alta intencion" : hasService ? "Media intencion" : "Sin interaccion",
   };
 }
 

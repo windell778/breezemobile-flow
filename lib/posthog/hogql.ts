@@ -3,6 +3,7 @@
 // Server-side only — never import from client components.
 
 import { replayRate } from "@/lib/metrics";
+import { DEFAULT_WORKSPACE_CONFIG, inferIntentLevel } from "@/lib/workspace-config";
 import { unstable_cache } from "next/cache";
 import type {
   Attribution,
@@ -101,10 +102,8 @@ function inferSource(r: Record<string, unknown>): Source {
   return "Direct";
 }
 
-function inferIntentLevel(events: TrackingEvent[]): IntentLevel {
-  if (events.some((e) => e.event_name === "whatsapp_click")) return "Alta";
-  if (events.some((e) => e.event_name === "service_click")) return "Media";
-  return "Baja";
+function _inferIntentLevel(events: TrackingEvent[]): IntentLevel {
+  return inferIntentLevel(events, DEFAULT_WORKSPACE_CONFIG);
 }
 
 function buildAttribution(r: Record<string, unknown>): Attribution {
@@ -282,7 +281,7 @@ export async function listSessionsHogQL(
       session.timestamp = new Date(Math.min(...timestamps)).toISOString();
     }
     session.events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-    session.intent_level = inferIntentLevel(session.events);
+    session.intent_level = _inferIntentLevel(session.events);
     if (session.events[0]) {
       session.source = session.events[0].source;
     }

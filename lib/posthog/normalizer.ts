@@ -14,6 +14,7 @@ import type {
   TrackingEvent,
   Visitor,
 } from "@/lib/data/types";
+import { DEFAULT_WORKSPACE_CONFIG, inferIntentLevel } from "@/lib/workspace-config";
 
 // ─── PostHog raw response shapes ─────────────────────────────────────────────
 
@@ -76,10 +77,8 @@ function inferSource(props: Record<string, unknown>): Source {
   return "Direct";
 }
 
-function inferIntentLevel(events: TrackingEvent[]): IntentLevel {
-  if (events.some((e) => e.event_name === "whatsapp_click")) return "Alta";
-  if (events.some((e) => e.event_name === "service_click")) return "Media";
-  return "Baja";
+function _inferIntentLevel(events: TrackingEvent[]): IntentLevel {
+  return inferIntentLevel(events, DEFAULT_WORKSPACE_CONFIG);
 }
 
 function normalizeServiceKey(raw: unknown): ServiceKey {
@@ -214,7 +213,7 @@ export function buildSessionsFromEvents(
       page_url: str(first.payload.page_url),
       timestamp: sorted[0].timestamp,
       duration: null, // PostHog does not return session duration via Events API
-      intent_level: inferIntentLevel(sessionEvents),
+      intent_level: _inferIntentLevel(sessionEvents),
       attribution: first.attribution,
       recording: recording ?? {
         workspace_id: workspaceId,
