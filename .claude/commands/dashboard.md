@@ -63,7 +63,7 @@ Una sola sesión puede generar múltiples eventos. Por lo tanto:
 ## Regla de `whatsapp_click`
 
 ```
-whatsapp_click = señal anónima de alta intención
+whatsapp_click = señal anónima de alta intención  [workspace: breezemobile]
 whatsapp_click ≠ lead confirmado
 whatsapp_click ≠ venta
 whatsapp_click ≠ revenue
@@ -71,6 +71,12 @@ whatsapp_click ≠ revenue
 
 Nunca mostrar `whatsapp_clicks` como "conversiones" en el sentido comercial.
 Usar etiqueta "Señales de intención" o "Alta intención".
+
+Esta clasificación está definida en `lib/workspace-config.ts` →
+`DEFAULT_WORKSPACE_CONFIG.semanticRules.highIntentSignal`. Es una regla
+del workspace BreezeMobile, no del sistema de tracking. En una plataforma
+multiworkspace, otro cliente podría tener `form_submit` o `booking_click`
+como señal de alta intención.
 
 ## No tocar
 

@@ -14,11 +14,19 @@ este documento gana para cuestiones de definición y semántica.
 ## Principios generales
 
 - Las fórmulas canónicas viven en `lib/metrics.ts`. Nunca calcular tasas inline.
-- `whatsapp_click` es una señal de alta intención anónima. Nunca llamarlo lead, venta o revenue.
+- La semántica de eventos (qué significa "alta intención") vive en `lib/workspace-config.ts`. Nunca hardcodear nombres de eventos en lógica de negocio.
 - Datos **live** (caché 60 s): sesiones, eventos, visitor intelligence.
 - Datos **golden** (caché 900 s): dashboard totals, campañas, servicios.
 - Los conteos de eventos (`whatsappClicks`, `serviceClicks`) son brutos — una sesión puede contribuir múltiples veces.
 - Los conteos únicos (`sessions`, `visitors`) usan `uniq()` en HogQL — no duplican.
+
+### Sobre `whatsapp_click` como señal de alta intención
+
+**En el workspace BreezeMobile V0**, `whatsapp_click` está configurado como señal anónima de alta intención y conversión anónima (`DEFAULT_WORKSPACE_CONFIG.semanticRules.highIntentSignal`). Esta es una decisión de negocio de BreezeMobile, no una verdad universal.
+
+En una plataforma multiworkspace, cada cliente puede definir un evento distinto como alta intención: `form_submit`, `booking_click`, `demo_scheduled`, etc. La lógica de inferencia (`inferIntentLevel`, `mainEventForSession`) ya usa `lib/workspace-config.ts` para separar esta semántica del código de tracking.
+
+`whatsapp_click` **nunca** significa lead confirmado, venta, revenue ni ROAS.
 
 ---
 
