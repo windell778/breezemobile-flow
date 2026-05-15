@@ -112,7 +112,7 @@ Invalidación: `POST /api/revalidate` con `Authorization: Bearer <REVALIDATE_SEC
 | Definición | El servicio (página) con más sesiones |
 | Fuente | `getServiceSummariesHogQL` → primer elemento del array ordenado |
 | Tipo | `ServicePageSummary \| null` |
-| Advertencia | Basado en `properties.service` del primer evento. |
+| Advertencia | `getServiceSummariesHogQL` agrupa eventos directamente por `properties.service` con `GROUP BY` — no construye sesiones intermedias. El campo `sessions` es `uniq(session_id)` dentro de ese grupo. Eventos sin `properties.service` son excluidos por la cláusula `WHERE`. Ordenado por `whatsapp_clicks DESC, sessions DESC`. |
 
 ### `cached_at`
 
@@ -145,7 +145,7 @@ Es una señal direccional de intención, **no una tasa de conversión comercial 
 
 Para obtener una tasa real de "sesiones con al menos un WhatsApp", se necesitaría una métrica separada `sessionsWithWhatsapp` calculada con `uniqIf(session_id, event = 'whatsapp_click')` en HogQL.
 
-También aclarar que `getCampaignSummariesHogQL` agrupa directamente eventos por `properties.utm_campaign` (no sesiones construidas). Sesiones sin `utm_campaign` no aparecen en este resumen.
+`getCampaignSummariesHogQL` agrupa directamente eventos por `properties.utm_campaign`, no sesiones construidas. Sesiones sin `utm_campaign` no aparecen en este resumen.
 
 ---
 
@@ -174,7 +174,7 @@ Frescura: **live, 60 s**
 | `timestamp` | Inicio de la sesión | `min(event.timestamp)` del grupo |
 | `duration` | Duración estimada en segundos | Calculada como `max(timestamp) - min(timestamp)` de los eventos del grupo. Es `null` cuando la sesión tiene un solo evento. Esta es una estimación V0 basada en eventos, **no la duración oficial de PostHog**. PostHog Events API no devuelve duración de sesión directamente. |
 | `source` | Canal de origen | Inferido de `utm_medium`/`utm_source` del primer evento. Valores: `"Meta Ads"`, `"Google Ads"`, `"Organic"`, `"Direct"`. |
-| `intent_level` | Nivel de intención | Inferido: `whatsapp_click` → Alta, `service_click` → Media, else → Baja |
+| `intent_level` | Nivel de intención | Inferido con `inferIntentLevel(events, DEFAULT_WORKSPACE_CONFIG)` desde `lib/workspace-config.ts`. En BreezeMobile V0: `whatsapp_click` → Alta, `service_click` → Media, else → Baja. En multiworkspace, vendrá de la config del workspace. |
 | `attribution` | Campos UTM | Del primer evento de la sesión (atribución al landing) |
 | `recording` | Referencia a grabación | Cruzado desde `fetchRecordingsMap` — `null` si no hay grabación |
 

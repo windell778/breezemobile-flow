@@ -94,11 +94,11 @@ export function mainEventForSession(
   events: { event_name: EventName }[],
   config: WorkspaceConfig,
 ): EventName {
-  if (events.some((e) => config.intentRules.high.includes(e.event_name))) {
-    return config.intentRules.high[0];
-  }
-  if (events.some((e) => config.intentRules.medium.includes(e.event_name))) {
-    return config.intentRules.medium[0];
-  }
+  const highEvent = events.find((e) => config.intentRules.high.includes(e.event_name));
+  if (highEvent) return highEvent.event_name;
+
+  const mediumEvent = events.find((e) => config.intentRules.medium.includes(e.event_name));
+  if (mediumEvent) return mediumEvent.event_name;
+
   return "page_view_custom";
 }
