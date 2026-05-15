@@ -505,8 +505,101 @@ export async function getServiceSummariesHogQL(
   });
 }
 
-// Tracking health is static contract content, not queryable from PostHog.
-// Always returns the same items with workspace_id attached.
+// Tracking health based on real PostHog data signals.
+// Runs four lightweight aggregate queries to detect actual gaps in the tracking data.
+// Cached at golden (900s) alongside other dashboard metrics.
+export async function getTrackingHealthHogQL(
+  projectId: string,
+  apiKey: string,
+  host: string,
+  workspaceId: string,
+): Promise<TrackingHealth[]> {
+  const sql = `
+    SELECT
+      uniq(properties.session_id) AS total_sessions,
+      uniqIf(
+        properties.session_id,
+        (toString(properties.utm_medium) = '' OR properties.utm_medium IS NULL)
+        AND (toString(properties.utm_source) = '' OR properties.utm_source IS NULL)
+      ) AS sessions_without_utm,
+      countIf(
+        event = 'whatsapp_click'
+        AND (toString(properties.utm_campaign) = '' OR properties.utm_campaign IS NULL)
+      ) AS wa_clicks_without_campaign,
+      countIf(
+        toString(properties.visitor_id) = '' OR properties.visitor_id IS NULL
+      ) AS events_without_visitor_id
+    FROM events
+    WHERE ${EVENT_FILTER}
+  `;
+
+  const res = await runHogQLGolden(projectId, apiKey, host, sql);
+  const row = res.results[0] ?? [];
+  const cols = res.columns;
+  const r = toRow(cols, row);
+
+  const totalSessions = num(r.total_sessions);
+  const sessionsWithoutUtm = num(r.sessions_without_utm);
+  const waClicksWithoutCampaign = num(r.wa_clicks_without_campaign);
+  const eventsWithoutVisitorId = num(r.events_without_visitor_id);
+
+  const items: TrackingHealth[] = [];
+
+  // Sessions without any UTM attribution
+  if (sessionsWithoutUtm > 0) {
+    const pct = totalSessions > 0 ? Math.round((sessionsWithoutUtm / totalSessions) * 100) : 0;
+    items.push({
+      workspace_id: workspaceId,
+      id: "health_missing_utm",
+      severity: pct > 30 ? "Alto" : pct > 10 ? "Medio" : "Bajo",
+      area: "Atribucion",
+      title: `${sessionsWithoutUtm} sesiones sin UTM (${pct}% del total)`,
+      detail: "Estas sesiones llegan sin utm_medium ni utm_source. Se clasifican como Direct y no se atribuyen a ninguna campana.",
+      recommendation: "Revisar links de anuncios y asegurar que todos incluyen parametros UTM antes del lanzamiento.",
+    });
+  }
+
+  // WhatsApp clicks without campaign attribution
+  if (waClicksWithoutCampaign > 0) {
+    items.push({
+      workspace_id: workspaceId,
+      id: "health_wa_no_campaign",
+      severity: "Medio",
+      area: "Atribucion",
+      title: `${waClicksWithoutCampaign} clicks WhatsApp sin utm_campaign`,
+      detail: "Senales de alta intencion que no se pueden atribuir a ninguna campana especifica.",
+      recommendation: "Asegurar que los links de ads incluyen utm_campaign. Estos clicks no cuentan en el ranking de campanas.",
+    });
+  }
+
+  // Events missing visitor_id — contract violation
+  if (eventsWithoutVisitorId > 0) {
+    items.push({
+      workspace_id: workspaceId,
+      id: "health_missing_visitor_id",
+      severity: "Alto",
+      area: "Tracking",
+      title: `${eventsWithoutVisitorId} eventos sin visitor_id`,
+      detail: "Eventos llegando sin visitor_id. Puede indicar un fallo en el script de tracking o en posthog.register().",
+      recommendation: "Verificar que el script de tracking esta activo en todas las paginas y que posthog.register() se ejecuta correctamente.",
+    });
+  }
+
+  // Static structural item: V0 contract scope (always shown as informational)
+  items.push({
+    workspace_id: workspaceId,
+    id: "health_event_contract",
+    severity: "Bajo",
+    area: "Tracking",
+    title: "Contrato V0: 3 eventos activos",
+    detail: "page_view_custom, service_click y whatsapp_click. No hay revenue, cotizaciones ni ventas en el contrato actual.",
+    recommendation: "No mostrar datos comerciales reales hasta conectar Meta Ads API o CRM.",
+  });
+
+  return items;
+}
+
+// Kept for MockAdapter and fallback use only.
 export function getTrackingHealthStatic(workspaceId: string): TrackingHealth[] {
   return [
     {
