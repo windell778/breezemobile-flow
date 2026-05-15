@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { SourceBadge } from "@/components/ui/SourceBadge";
 import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
+import { waRate } from "@/lib/metrics";
 import type { Session, Source } from "@/lib/data/types";
 
 type PageProps = {
@@ -155,7 +156,7 @@ function buildAttributionRows(sessions: Session[], dimension: Dimension) {
     .map(([key, row]) => ({
       key,
       ...row,
-      rate: row.sessions ? Math.round((row.whatsappClicks / row.sessions) * 100) : 0,
+      rate: waRate(row.whatsappClicks, row.sessions),
     }))
     .sort((a, b) => b.whatsappClicks - a.whatsappClicks || b.sessions - a.sessions);
 }
