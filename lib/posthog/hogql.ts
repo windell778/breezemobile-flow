@@ -505,23 +505,51 @@ export async function getServiceSummariesHogQL(
   });
 }
 
-// Tracking health based on real PostHog data signals.
-// Runs four lightweight aggregate queries to detect actual gaps in the tracking data.
-// Cached at golden (900s) alongside other dashboard metrics.
+// Tracking health based on real PostHog data signals. Cached at golden (900s).
+//
+// Uses two queries with different granularities:
+//
+// Query 1 — SESSION level (subquery with argMin):
+//   A session is "sin UTM" if its FIRST event (by timestamp) has no utm_source
+//   and no utm_medium. This matches how listSessionsHogQL builds attribution:
+//   the landing event defines the session's attribution, not subsequent events.
+//   Avoids the false-positive of uniqIf() on a flat scan, which would flag a
+//   session if ANY of its events is missing UTM even if the landing had it.
+//
+// Query 2 — EVENT level (flat scan, no session grouping):
+//   - wa_clicks_without_campaign: whatsapp_click events whose own payload does
+//     not include utm_campaign. This is a payload-level validation, not a claim
+//     about whether the session has a campaign. Text must say "evento", not "sesion".
+//   - events_without_visitor_id: events missing visitor_id entirely — contract
+//     violation that implies posthog.register() did not fire.
 export async function getTrackingHealthHogQL(
   projectId: string,
   apiKey: string,
   host: string,
   workspaceId: string,
 ): Promise<TrackingHealth[]> {
-  const sql = `
+  // Query 1: session-level UTM check via first-event attribution (argMin).
+  const sessionSql = `
     SELECT
-      uniq(properties.session_id) AS total_sessions,
+      uniq(session_id) AS total_sessions,
       uniqIf(
-        properties.session_id,
-        (toString(properties.utm_medium) = '' OR properties.utm_medium IS NULL)
-        AND (toString(properties.utm_source) = '' OR properties.utm_source IS NULL)
-      ) AS sessions_without_utm,
+        session_id,
+        first_utm_source = '' AND first_utm_medium = ''
+      ) AS sessions_without_utm
+    FROM (
+      SELECT
+        toString(properties.session_id) AS session_id,
+        argMin(toString(properties.utm_source), timestamp) AS first_utm_source,
+        argMin(toString(properties.utm_medium), timestamp) AS first_utm_medium
+      FROM events
+      WHERE ${EVENT_FILTER} AND ${SESSION_FILTER}
+      GROUP BY session_id
+    )
+  `;
+
+  // Query 2: event-level payload checks (no session grouping needed).
+  const eventSql = `
+    SELECT
       countIf(
         event = 'whatsapp_click'
         AND (toString(properties.utm_campaign) = '' OR properties.utm_campaign IS NULL)
@@ -533,19 +561,22 @@ export async function getTrackingHealthHogQL(
     WHERE ${EVENT_FILTER}
   `;
 
-  const res = await runHogQLGolden(projectId, apiKey, host, sql);
-  const row = res.results[0] ?? [];
-  const cols = res.columns;
-  const r = toRow(cols, row);
+  const [sessionRes, eventRes] = await Promise.all([
+    runHogQLGolden(projectId, apiKey, host, sessionSql),
+    runHogQLGolden(projectId, apiKey, host, eventSql),
+  ]);
 
-  const totalSessions = num(r.total_sessions);
-  const sessionsWithoutUtm = num(r.sessions_without_utm);
-  const waClicksWithoutCampaign = num(r.wa_clicks_without_campaign);
-  const eventsWithoutVisitorId = num(r.events_without_visitor_id);
+  const sr = toRow(sessionRes.columns, sessionRes.results[0] ?? []);
+  const er = toRow(eventRes.columns, eventRes.results[0] ?? []);
+
+  const totalSessions = num(sr.total_sessions);
+  const sessionsWithoutUtm = num(sr.sessions_without_utm);
+  const waClicksWithoutCampaign = num(er.wa_clicks_without_campaign);
+  const eventsWithoutVisitorId = num(er.events_without_visitor_id);
 
   const items: TrackingHealth[] = [];
 
-  // Sessions without any UTM attribution
+  // SESSION-level: sessions whose landing event has no UTM attribution.
   if (sessionsWithoutUtm > 0) {
     const pct = totalSessions > 0 ? Math.round((sessionsWithoutUtm / totalSessions) * 100) : 0;
     items.push({
@@ -553,26 +584,26 @@ export async function getTrackingHealthHogQL(
       id: "health_missing_utm",
       severity: pct > 30 ? "Alto" : pct > 10 ? "Medio" : "Bajo",
       area: "Atribucion",
-      title: `${sessionsWithoutUtm} sesiones sin UTM (${pct}% del total)`,
-      detail: "Estas sesiones llegan sin utm_medium ni utm_source. Se clasifican como Direct y no se atribuyen a ninguna campana.",
+      title: `${sessionsWithoutUtm} sesiones sin atribucion UTM en landing (${pct}%)`,
+      detail: "Sesiones cuyo primer evento no trae utm_source ni utm_medium. Se clasifican como Direct y no se atribuyen a ninguna campana.",
       recommendation: "Revisar links de anuncios y asegurar que todos incluyen parametros UTM antes del lanzamiento.",
     });
   }
 
-  // WhatsApp clicks without campaign attribution
+  // EVENT-level: whatsapp_click events whose payload does not include utm_campaign.
   if (waClicksWithoutCampaign > 0) {
     items.push({
       workspace_id: workspaceId,
       id: "health_wa_no_campaign",
       severity: "Medio",
       area: "Atribucion",
-      title: `${waClicksWithoutCampaign} clicks WhatsApp sin utm_campaign`,
-      detail: "Senales de alta intencion que no se pueden atribuir a ninguna campana especifica.",
-      recommendation: "Asegurar que los links de ads incluyen utm_campaign. Estos clicks no cuentan en el ranking de campanas.",
+      title: `${waClicksWithoutCampaign} eventos whatsapp_click sin utm_campaign en payload`,
+      detail: "Estos eventos no traen utm_campaign en su propio payload. No implica necesariamente que la sesion no tenga campana — solo que el payload del evento especifico carece del campo.",
+      recommendation: "Asegurar que los links de ads incluyen utm_campaign. Estos eventos no cuentan en el ranking de campanas.",
     });
   }
 
-  // Events missing visitor_id — contract violation
+  // EVENT-level: events missing visitor_id — contract violation.
   if (eventsWithoutVisitorId > 0) {
     items.push({
       workspace_id: workspaceId,
@@ -580,12 +611,12 @@ export async function getTrackingHealthHogQL(
       severity: "Alto",
       area: "Tracking",
       title: `${eventsWithoutVisitorId} eventos sin visitor_id`,
-      detail: "Eventos llegando sin visitor_id. Puede indicar un fallo en el script de tracking o en posthog.register().",
+      detail: "Eventos llegando sin visitor_id en el payload. Indica que posthog.register() no se ejecuto antes de capturar el evento.",
       recommendation: "Verificar que el script de tracking esta activo en todas las paginas y que posthog.register() se ejecuta correctamente.",
     });
   }
 
-  // Static structural item: V0 contract scope (always shown as informational)
+  // Structural item: always shown as informational reminder of V0 scope.
   items.push({
     workspace_id: workspaceId,
     id: "health_event_contract",
