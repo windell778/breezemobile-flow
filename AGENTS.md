@@ -78,7 +78,8 @@ When documents conflict, this order wins:
 2. `docs/architecture/plan.md` — wins on technical decisions and data model.
 3. `docs/product/phases.md` — wins on scope and phases.
 4. `docs/product/scope-and-non-goals.md` — wins on what not to build.
-5. Any other doc in `docs/` — most recently modified wins.
+5. `docs/metrics/definitions.md` — wins on metric definitions, formulas, and semantic labels.
+6. Any other doc in `docs/` — most recently modified wins.
 
 ---
 
