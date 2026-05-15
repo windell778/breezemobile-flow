@@ -269,8 +269,8 @@ class PostHogAdapter implements DataAdapter {
   }
 
   async getTrackingHealth(workspaceId: string): Promise<TrackingHealth[]> {
-    const { getTrackingHealthStatic } = await import("@/lib/posthog/hogql");
-    return getTrackingHealthStatic(workspaceId);
+    const { getTrackingHealthHogQL } = await import("@/lib/posthog/hogql");
+    return getTrackingHealthHogQL(this.projectId, this.apiKey, this.host, workspaceId);
   }
 
   async getCampaignSummaries(workspaceId: string): Promise<CampaignSummary[]> {
