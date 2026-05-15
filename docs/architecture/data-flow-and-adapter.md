@@ -459,8 +459,14 @@ export function shortId(id: string): string {
 
 ### Dónde se usa
 
-En tablas y listas donde mostrar el ID completo sería ilegible:
-`app/sesiones/page.tsx` (columnas session_id y visitor_id).
+En todas las páginas que muestran IDs en tablas o encabezados:
+
+| Página | Uso |
+|---|---|
+| `app/sesiones/page.tsx` | Columnas session_id y visitor_id |
+| `app/eventos/page.tsx` | Columna visitor_id / session_id combinada |
+| `app/grabaciones/page.tsx` | Encabezado de sesión activa y lista de sesiones |
+| `app/visitantes/[visitorId]/page.tsx` | Título de página, encabezados de sesión, journey, tabs |
 
 ### ⚠️ No tocar
 

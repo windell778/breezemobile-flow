@@ -34,15 +34,19 @@ Contexto de trabajo para el dominio de sesiones en BreezeMobile Flow.
 
 ```typescript
 {
-  eventName?: EventName;     // → SQL pushdown parcial
+  visitorId?: string;        // → SQL (WHERE properties.visitor_id = '...')
+  sessionId?: string;        // → SQL (WHERE properties.session_id = '...')
+  eventName?: EventName;     // → filtro en memoria post-fetch (bajar a SQL rompería el agrupamiento de sesiones)
   source?: Source;           // → filtro en memoria post-fetch
   service?: ServiceKey;      // → filtro en memoria post-fetch
   hasRecording?: boolean;    // → filtro en memoria post-fetch
-  search?: string;           // → filtro en memoria post-fetch
+  search?: string;           // → filtro en memoria post-fetch (nunca interpolar en SQL)
   limit?: number;
   offset?: number;
 }
 ```
+
+Ver `docs/architecture/data-flow-and-adapter.md §8` para la explicación completa de qué va a SQL y por qué.
 
 ## No tocar
 
