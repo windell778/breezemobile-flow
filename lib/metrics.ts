@@ -9,7 +9,8 @@
  *
  * Rules:
  * - whatsapp_click is a high-intent signal, NOT a confirmed lead or sale.
- * - All rates return integer percentages (0–100), never raw fractions.
+ * - replayRate returns integer percentage (0–100). waRate can exceed 100 because
+ *   whatsappClicks is a raw event count — one session can fire multiple clicks.
  * - Division-by-zero always returns 0, never NaN or Infinity.
  */
 
