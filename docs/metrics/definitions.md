@@ -95,7 +95,7 @@ Invalidación: `POST /api/revalidate` con `Authorization: Bearer <REVALIDATE_SEC
 | Definición | La campaña con más `whatsapp_clicks` en el período |
 | Fuente | `getCampaignSummariesHogQL` → primer elemento del array ordenado |
 | Tipo | `CampaignSummary \| null` |
-| Advertencia | Basado en `utm_campaign` del primer evento de la sesión. Sesiones sin UTM no aparecen en campañas. |
+| Advertencia | `getCampaignSummariesHogQL` agrupa eventos directamente por `properties.utm_campaign` con `GROUP BY` — no construye sesiones intermedias. El campo `sessions` es `uniq(session_id)` dentro de ese grupo. Eventos sin `utm_campaign` son excluidos por la cláusula `WHERE`. Ordenado por `whatsapp_clicks DESC, sessions DESC`. |
 
 ### `topService`
 
@@ -128,9 +128,16 @@ Frescura: **golden, 900 s**
 | `page_views` | Vistas de página | `countIf(event = 'page_view_custom')` |
 | `service_clicks` | Clics en servicios (bruto) | `countIf(event = 'service_click')` |
 | `whatsapp_clicks` | Señales de alta intención (bruto) | `countIf(event = 'whatsapp_click')` |
+| `recordings` | ⚠️ **No implementado** — devuelve `0` en `PostHogAdapter` | `getCampaignSummariesHogQL` asigna `recordings: 0` hardcodeado. Pendiente. |
 | Tasa WA | `waRate(whatsappClicks, sessions)` | Ver `lib/metrics.ts` |
 
-La tasa WA en la tabla de campañas es `waRate(whatsappClicks, sessions)` — porcentaje de sesiones con al menos un `whatsapp_click` según el numerador bruto. No es comparable con tasas de conversión comerciales.
+**Tasa WA** = `waRate(whatsappClicks, sessions)` = eventos `whatsapp_click` / sesiones únicas.
+
+Es una señal direccional de intención, **no una tasa de conversión comercial ni una tasa de sesiones únicas con WhatsApp**. Como `whatsappClicks` es conteo bruto de eventos, la tasa puede superar 100% si una o varias sesiones generan múltiples clicks.
+
+Para obtener una tasa real de "sesiones con al menos un WhatsApp", se necesitaría una métrica separada `sessionsWithWhatsapp` calculada con `uniqIf(session_id, event = 'whatsapp_click')` en HogQL.
+
+También aclarar que `getCampaignSummariesHogQL` agrupa directamente eventos por `properties.utm_campaign` (no sesiones construidas). Sesiones sin `utm_campaign` no aparecen en este resumen.
 
 ---
 
@@ -145,7 +152,7 @@ Frescura: **golden, 900 s**
 | `page_views` | Vistas de página | `countIf(event = 'page_view_custom')` |
 | `service_clicks` | Clics en ese servicio (bruto) | `countIf(event = 'service_click')` |
 | `whatsapp_clicks` | Señales WA en esa página (bruto) | `countIf(event = 'whatsapp_click')` |
-| `recordings` | Grabaciones disponibles para esas sesiones | Cruzado desde `fetchRecordingsMap` |
+| `recordings` | ⚠️ **No implementado** — devuelve `0` en `PostHogAdapter` | `getServiceSummariesHogQL` asigna `recordings: 0` hardcodeado. Pendiente de implementar cruzado con `fetchRecordingsMap` por servicio. |
 
 ---
 
@@ -157,7 +164,7 @@ Frescura: **live, 60 s**
 | Campo | Definición | Cómo se calcula |
 |---|---|---|
 | `timestamp` | Inicio de la sesión | `min(event.timestamp)` del grupo |
-| `duration` | Duración en segundos | `max - min` de timestamps. **Siempre `null` en PostHog real** — solo tiene valor en mock. |
+| `duration` | Duración estimada en segundos | Calculada como `max(timestamp) - min(timestamp)` de los eventos del grupo. Es `null` cuando la sesión tiene un solo evento. Esta es una estimación V0 basada en eventos, **no la duración oficial de PostHog**. PostHog Events API no devuelve duración de sesión directamente. |
 | `source` | Canal de origen | Inferido de `utm_medium`/`utm_source` del primer evento. Valores: `"Meta Ads"`, `"Google Ads"`, `"Organic"`, `"Direct"`. |
 | `intent_level` | Nivel de intención | Inferido: `whatsapp_click` → Alta, `service_click` → Media, else → Baja |
 | `attribution` | Campos UTM | Del primer evento de la sesión (atribución al landing) |
@@ -170,7 +177,7 @@ Frescura: **live, 60 s**
 | Función | Descripción |
 |---|---|
 | `replayRate(n, total)` | % de sesiones con grabación. Retorna 0 si `total === 0`. |
-| `waRate(clicks, total)` | % de sesiones con WhatsApp click según conteo bruto. Retorna 0 si `total === 0`. |
+| `waRate(clicks, total)` | Eventos `whatsapp_click` / sesiones. Señal direccional — puede superar 100%. No es tasa de sesiones únicas con WhatsApp. Retorna 0 si `total === 0`. |
 | `validateMetrics(m)` | Chequeos de integridad. Retorna array de warnings (vacío = sano). |
 | `timeAgo(iso)` | "hace X min/h" para mostrar frescura de caché en UI. |
 
