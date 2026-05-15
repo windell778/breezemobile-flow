@@ -225,22 +225,49 @@ diferencias importantes:
 
 ---
 
-## 5. Tracking Health — alcance real
+## 5. Tracking Health — señales reales desde PostHog
 
-La página `/tracking` muestra datos de "salud del tracking", pero
-**actualmente no audita datos reales**. El contenido es estático: es
-una copia del contrato de tracking formateada para la UI.
+La página `/tracking` muestra alertas de salud del tracking basadas en
+datos reales de PostHog cuando `DATA_SOURCE=posthog`. Con `DATA_SOURCE=mock`
+devuelve items estáticos de referencia.
 
-```typescript
-// lib/posthog/hogql.ts
-export function getTrackingHealthStatic(workspaceId: string): TrackingHealth[] {
-  // Devuelve checklist hardcodeado, no queries a PostHog
-}
-```
+| Adapter | Función | Caché |
+|---|---|---|
+| `PostHogAdapter` | `getTrackingHealthHogQL()` | golden, 900s |
+| `MockAdapter` | `getTrackingHealthStatic()` | sin caché (datos fijos) |
 
-Lo que el usuario ve no refleja si los eventos reales de PostHog
-cumplen el contrato — es una guía de referencia, no un validador.
-Para validar datos reales usar `/api/diagnostics/posthog`.
+### Checks actuales y su granularidad
+
+Los checks usan dos queries con granularidades distintas. El nivel importa
+porque determina qué significa exactamente cada alerta:
+
+**Session-level** (subquery con `argMin` por timestamp):
+- `sessions_without_utm` — sesiones cuyo **primer evento** (landing) no trae
+  `utm_source` ni `utm_medium`. Consistente con el modelo de atribución:
+  la sesión hereda la atribución de su evento inicial. Una sesión solo se
+  cuenta como "sin UTM" si su landing no tenía atribución — no si algún
+  evento interno posterior carece del campo.
+
+**Event-level** (scan directo, sin agrupar por sesión):
+- `wa_clicks_without_campaign` — eventos `whatsapp_click` cuyo payload no
+  trae `utm_campaign`. **Es validación del payload del evento, no de la
+  sesión.** Un evento puede carecer del campo aunque la sesión pueda
+  atribuirse a una campaña.
+- `events_without_visitor_id` — eventos sin `visitor_id` en el payload.
+  Violación del contrato; indica que `posthog.register()` no se ejecutó.
+
+### Reglas semánticas de Tracking Health
+
+- Los checks son diagnósticos técnicos, **no métricas comerciales**.
+- No infieren leads confirmados, ventas, revenue ni ROAS.
+- Si el check es a nivel evento, el texto dice "evento sin campo".
+- Si el check es a nivel sesión, el texto dice "sesión sin atribución".
+- No mezclar ambas granularidades en el mismo item de alerta.
+- El item del contrato V0 (`health_event_contract`) siempre se muestra
+  como recordatorio de alcance, independientemente de los datos.
+
+Para conectividad y muestra cruda de PostHog: `/api/diagnostics/posthog`.
+Para drift entre capas de caché: `/api/diagnostics/consistency`.
 
 ---
 

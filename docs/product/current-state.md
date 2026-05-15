@@ -25,7 +25,7 @@ Fase 0 (tracking confiable) está parcialmente validada:
 | Campañas (`/campanas`) | ✅ Carga desde listSessions, agrupa por dimensión |
 | Servicios (`/servicios`) | ✅ Carga desde getServiceSummaries vía HogQL |
 | Grabaciones (`/grabaciones`) | ✅ Lista grabaciones reales + player rrweb funcional en tiempo real |
-| Tracking Health (`/tracking`) | ✅ Contenido estático de contrato, no queryable |
+| Tracking Health (`/tracking`) | ✅ Señales reales desde PostHog con `DATA_SOURCE=posthog` (golden 900s); mock estático con `DATA_SOURCE=mock` |
 | Visitor Intelligence (`/visitantes/[id]`) | ✅ Carga resumen, sesiones, journey, eventos, atribución, técnico, grabaciones |
 | Diagnóstico (`/api/diagnostics/posthog`) | ✅ Valida conexión PostHog en tiempo real |
 
