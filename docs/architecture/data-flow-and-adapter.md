@@ -117,34 +117,61 @@ los planes y no contienen los campos de atribución propios
 
 ## 3. Dos capas de caché HogQL — live vs. golden
 
-`lib/posthog/hogql.ts` mantiene dos funciones de caché separadas:
+`lib/posthog/hogql.ts` mantiene dos capas de caché separadas:
 
-| Función | TTL | Tag | Usado para |
-|---------|-----|-----|-----------|
+| Caché | TTL | Tag | Usado para |
+|-------|-----|-----|-----------|
 | `runHogQL` | 60 s | — | Datos en vivo: listas de sesiones, eventos, datos por visitante |
-| `runHogQLGolden` | 900 s | `"golden"` | Métricas agregadas: dashboard totals, campañas, servicios |
+| `runHogQLGolden` | 900 s | `"golden"` | Sub-queries HogQL de métricas agregadas |
+| `_cachedDashboardMetrics` | 900 s | `"golden"` | Ensamblaje completo de `DashboardMetrics` |
 
 La separación sigue el patrón de _golden layer_: las métricas agregadas
-(totales del dashboard, resúmenes de campañas, resúmenes de servicios) no
-cambian segundo a segundo. Cacheadas a 15 minutos reducen la carga sobre
+no cambian segundo a segundo. Cacheadas a 15 minutos reducen la carga sobre
 PostHog y aceleran las páginas de resumen sin sacrificar frescura en las
 vistas de detalle.
 
-```typescript
-// Datos en vivo — listSessionsHogQL, listEventsHogQL
-runHogQL(projectId, apiKey, host, sql)         // revalidate: 60
+### Por qué `_cachedDashboardMetrics` es una caché propia
 
-// Capa golden — getDashboardMetricsHogQL, getCampaignSummariesHogQL, getServiceSummariesHogQL
-runHogQLGolden(projectId, apiKey, host, sql)   // revalidate: 900, tags: ["golden"]
+`getDashboardMetricsHogQL` ensambla el objeto `DashboardMetrics` completo:
+combina el resultado de `runHogQLGolden`, `getCampaignSummariesHogQL`,
+`getServiceSummariesHogQL` y `fetchRecordingsMap`. Incluye el campo
+`cached_at: new Date().toISOString()` que representa cuándo se pobló la caché.
+
+Si este ensamblaje no estuviera en su propia caché, `cached_at` se
+regeneraría en cada request — aunque los datos de PostHog vinieran del
+caché de `runHogQLGolden`. La UI mostraría "hace 0 min" aunque las métricas
+tuvieran 14 minutos de antigüedad.
+
+**Regla:** cualquier campo de metadatos de frescura debe generarse
+**dentro** de la función cacheada, no fuera de ella.
+
+```typescript
+// ✓ correcto — cached_at se congela con los datos
+const _cachedDashboardMetrics = unstable_cache(
+  async (...) => {
+    // ... queries
+    return { ...metrics, cached_at: new Date().toISOString() };
+  },
+  ["posthog-dashboard-metrics"],
+  { revalidate: 900, tags: ["golden"] }
+);
+
+// ✗ incorrecto — cached_at se actualiza en cada request
+async function getDashboardMetricsHogQL(...) {
+  const metrics = await runHogQLGolden(...);     // cacheado
+  return { ...metrics, cached_at: new Date().toISOString() };  // NO cacheado
+}
 ```
 
-Para invalidar manualmente la capa golden (por ejemplo, después de un
-despliegue o un cambio importante de datos):
+Para invalidar manualmente la capa golden:
 
-```typescript
-import { revalidateTag } from "next/cache";
-revalidateTag("golden");
+```bash
+curl -X POST /api/revalidate \
+  -H "Authorization: Bearer <REVALIDATE_SECRET>"
 ```
+
+Esto llama `revalidateTag("golden", "max")` e invalida todas las cachés
+con tag `"golden"`: `_cachedHogQLPostGolden` y `_cachedDashboardMetrics`.
 
 ---
 

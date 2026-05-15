@@ -378,7 +378,12 @@ export async function getDashboardMetricsHogQL(
   host: string,
   workspaceId: string,
 ): Promise<DashboardMetrics> {
-  const sql = `
+  return _cachedDashboardMetrics(projectId, apiKey, host, workspaceId);
+}
+
+const _cachedDashboardMetrics = unstable_cache(
+  async (projectId: string, apiKey: string, host: string, workspaceId: string): Promise<DashboardMetrics> => {
+    const sql = `
     SELECT
       uniq(properties.session_id) AS sessions,
       uniq(properties.visitor_id) AS visitors,
@@ -389,30 +394,33 @@ export async function getDashboardMetricsHogQL(
     WHERE ${EVENT_FILTER} AND ${SESSION_FILTER}
   `;
 
-  const [result, campaigns, services, recordingsMap] = await Promise.all([
-    runHogQLGolden(projectId, apiKey, host, sql),
-    getCampaignSummariesHogQL(projectId, apiKey, host, workspaceId),
-    getServiceSummariesHogQL(projectId, apiKey, host, workspaceId),
-    fetchRecordingsMap(projectId, apiKey, host, workspaceId),
-  ]);
+    const [result, campaigns, services, recordingsMap] = await Promise.all([
+      runHogQLGolden(projectId, apiKey, host, sql),
+      getCampaignSummariesHogQL(projectId, apiKey, host, workspaceId),
+      getServiceSummariesHogQL(projectId, apiKey, host, workspaceId),
+      fetchRecordingsMap(projectId, apiKey, host, workspaceId),
+    ]);
 
-  const r = toRow(result.columns, result.results[0] ?? [0, 0, 0, 0, 0]);
-  const totalSessions = num(r.sessions);
-  const recordings = recordingsMap.size;
+    const r = toRow(result.columns, result.results[0] ?? [0, 0, 0, 0, 0]);
+    const totalSessions = num(r.sessions);
+    const recordings = recordingsMap.size;
 
-  return {
-    sessions: totalSessions,
-    visitors: num(r.visitors),
-    events: num(r.events),
-    whatsappClicks: num(r.whatsapp_clicks),
-    serviceClicks: num(r.service_clicks),
-    recordings,
-    replayRate: replayRate(recordings, totalSessions),
-    topCampaign: campaigns[0] ?? null,
-    topService: services[0] ?? null,
-    cached_at: new Date().toISOString(),
-  };
-}
+    return {
+      sessions: totalSessions,
+      visitors: num(r.visitors),
+      events: num(r.events),
+      whatsappClicks: num(r.whatsapp_clicks),
+      serviceClicks: num(r.service_clicks),
+      recordings,
+      replayRate: replayRate(recordings, totalSessions),
+      topCampaign: campaigns[0] ?? null,
+      topService: services[0] ?? null,
+      cached_at: new Date().toISOString(),
+    };
+  },
+  ["posthog-dashboard-metrics"],
+  { revalidate: 900, tags: ["golden"] },
+);
 
 export async function getCampaignSummariesHogQL(
   projectId: string,
