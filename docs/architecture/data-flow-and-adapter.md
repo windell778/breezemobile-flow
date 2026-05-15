@@ -266,7 +266,72 @@ eventos en PostHog con una visita de prueba usando una URL con UTMs.
 
 ---
 
-## 7. Multi-tenant — estado actual
+## 7. Diagnóstico de consistencia — drift entre capas de caché
+
+`GET /api/diagnostics/consistency` detecta divergencia inesperada entre
+las dos capas de caché del sistema.
+
+**Auth:** `Authorization: Bearer <REVALIDATE_SECRET>` cuando la variable
+de entorno está configurada. Sin la variable, el endpoint queda abierto.
+
+### Qué compara
+
+| Métrica | Golden (900s) | Live (60s) |
+|---|---|---|
+| `sessions` | `uniq(session_id)` HogQL | `listSessions().length` |
+| `visitors` | `uniq(visitor_id)` HogQL | `new Set(visitor_id).size` sobre listSessions |
+| `whatsappClicks` | `countIf(event='whatsapp_click')` HogQL | suma de eventos `whatsapp_click` en listSessions |
+
+### Umbrales
+
+| Estado | Condición | Interpretación |
+|---|---|---|
+| `ok` | diff_pct < 10% | Normal |
+| `warn` | diff_pct 10–25% | Revisar; puede ser normal |
+| `drift` | diff_pct > 25% | Investigar |
+
+### Diferencias pequeñas son esperadas
+
+Las dos capas tienen TTLs distintos y estrategias de query distintas:
+
+- **Golden**: HogQL agregado, sin límite de filas, frescura 900s.
+- **Live**: `listSessionsHogQL` con `LIMIT 5000`, sesiones reconstruidas
+  desde eventos, frescura 60s.
+
+Causas comunes de diferencia:
+- TTL difference — golden puede tener datos de hace hasta 15 min
+- Caché golden sin invalidar desde el último reinicio
+- `listSessions()` truncado en LIMIT 5000 para volúmenes altos
+- Diferencia entre query agregada HogQL y sesiones reconstruidas desde eventos
+- Datos nuevos recién ingestados en PostHog visibles en live pero no en golden
+
+### Lo que este endpoint NO valida
+
+- `warn`/`drift` no significa bug confirmado — es una señal para investigar.
+- Este diagnóstico **no valida si `whatsapp_click` es lead confirmado**.
+  Solo compara conteos técnicos entre dos caminos de lectura de datos.
+- No compara ni valida: revenue, ROAS, leads confirmados, ventas, ni
+  ningún dato comercial. Solo métricas técnicas V0.
+
+```
+whatsapp_click en este endpoint = conteo de eventos técnicos
+whatsapp_click ≠ lead confirmado
+whatsapp_click ≠ venta
+whatsapp_click ≠ revenue
+```
+
+### Uso
+
+```bash
+curl /api/diagnostics/consistency \
+  -H "Authorization: Bearer <REVALIDATE_SECRET>"
+```
+
+Respuesta: `{ overall, dashboard_cached_at, live_computed_at, checks[], note[] }`
+
+---
+
+## 8. Multi-tenant — estado actual
 
 `workspace_id` está fijo como `"breezemobile"` (o el valor de la
 variable de entorno `WORKSPACE_ID`). No hay autenticación ni separación
@@ -283,7 +348,7 @@ de autenticación del usuario, no de una env var global.
 
 ---
 
-## 8. Patrón filter-to-adapter — por qué y cómo
+## 9. Patrón filter-to-adapter — por qué y cómo
 
 ### El problema que resuelve
 
@@ -371,7 +436,7 @@ texto libre en queries es el vector clásico de injection.
 
 ---
 
-## 9. Patrón `EmptyState`
+## 10. Patrón `EmptyState`
 
 ### Por qué existe
 
@@ -412,7 +477,7 @@ estructura definida; colocarlo fuera de la tabla.
 
 ---
 
-## 10. Patrón de renderizado: `force-dynamic` + Suspense
+## 11. Patrón de renderizado: `force-dynamic` + Suspense
 
 ### Por qué `force-dynamic` en todas las páginas
 
@@ -463,7 +528,7 @@ bloquea hasta que el fetch completa — el usuario ve pantalla en blanco.
 
 ---
 
-## 11. `shortId` — por qué existe y cómo funciona
+## 12. `shortId` — por qué existe y cómo funciona
 
 ### El problema
 

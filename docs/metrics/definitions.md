@@ -199,3 +199,26 @@ Frescura: **live, 60 s**
 ❌ Cualquier métrica que implique resultados económicos reales  
 
 Estas métricas requieren integración con Meta Ads API, CRM o sistema de pagos. No están en scope V0–V5.
+
+---
+
+## Diagnóstico de consistencia (`GET /api/diagnostics/consistency`)
+
+Este endpoint no es una métrica de producto — es una herramienta de diagnóstico interno para detectar divergencia inesperada entre las dos capas de caché.
+
+**Qué compara:** métricas del dashboard golden (900s) contra valores computados desde `listSessions()` live (60s) para `sessions`, `visitors`, y `whatsappClicks`.
+
+**Estados:** `ok` (<10% diff), `warn` (10–25%), `drift` (>25%).
+
+**Diferencias pequeñas son normales** — las dos capas tienen TTLs distintos y estrategias de query distintas. `listSessions()` aplica `LIMIT 5000`; el golden usa HogQL sin límite. `warn` no implica bug. `drift` implica investigar.
+
+**Semántica importante:** Este diagnóstico **no valida si `whatsapp_click` es lead confirmado**. Solo compara conteos técnicos entre dos caminos de lectura de datos. El campo `whatsappClicks` en este contexto es un conteo de eventos técnicos, no una métrica comercial.
+
+```
+whatsapp_click en este endpoint = conteo de eventos técnicos
+whatsapp_click ≠ lead confirmado
+whatsapp_click ≠ venta
+whatsapp_click ≠ revenue
+```
+
+**No compara:** revenue, ROAS, leads confirmados, ventas, ni ningún dato comercial. Alcance: métricas técnicas V0 únicamente.

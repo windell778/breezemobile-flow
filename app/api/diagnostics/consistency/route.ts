@@ -4,7 +4,7 @@
 //
 // Small differences are expected — the two caches have different TTLs and
 // use different query strategies (HogQL aggregate vs event-to-session grouping).
-// Large differences (>20%) indicate a potential bug or data gap worth investigating.
+// Large differences (>25%) indicate a potential bug or data gap worth investigating.
 //
 // Usage:
 //   curl /api/diagnostics/consistency \
