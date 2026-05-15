@@ -33,9 +33,8 @@ Contexto de trabajo para el dominio de sesiones en BreezeMobile Flow.
 ## Filtros disponibles (SessionFilters)
 
 ```typescript
+// SessionFilters — lib/data/types.ts
 {
-  visitorId?: string;        // → SQL (WHERE properties.visitor_id = '...')
-  sessionId?: string;        // → SQL (WHERE properties.session_id = '...')
   eventName?: EventName;     // → filtro en memoria post-fetch (bajar a SQL rompería el agrupamiento de sesiones)
   source?: Source;           // → filtro en memoria post-fetch
   service?: ServiceKey;      // → filtro en memoria post-fetch
@@ -45,6 +44,9 @@ Contexto de trabajo para el dominio de sesiones en BreezeMobile Flow.
   offset?: number;
 }
 ```
+
+`visitorId` y `sessionId` **no están en `SessionFilters`**. Pertenecen a
+`EventFilters` y se usan en `listEvents`, no en `listSessions`.
 
 Ver `docs/architecture/data-flow-and-adapter.md §8` para la explicación completa de qué va a SQL y por qué.
 
