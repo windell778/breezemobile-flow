@@ -1,6 +1,6 @@
 # Flujo de datos y DataAdapter
 
-_Última actualización: 2026-05-14_
+_Última actualización: 2026-05-15_
 
 Este documento explica cómo fluyen los datos desde PostHog hasta la UI,
 cómo está diseñado el sistema de adaptadores, y las limitaciones actuales
@@ -115,7 +115,40 @@ los planes y no contienen los campos de atribución propios
 
 ---
 
-## 3. Limitaciones de HogQL
+## 3. Dos capas de caché HogQL — live vs. golden
+
+`lib/posthog/hogql.ts` mantiene dos funciones de caché separadas:
+
+| Función | TTL | Tag | Usado para |
+|---------|-----|-----|-----------|
+| `runHogQL` | 60 s | — | Datos en vivo: listas de sesiones, eventos, datos por visitante |
+| `runHogQLGolden` | 900 s | `"golden"` | Métricas agregadas: dashboard totals, campañas, servicios |
+
+La separación sigue el patrón de _golden layer_: las métricas agregadas
+(totales del dashboard, resúmenes de campañas, resúmenes de servicios) no
+cambian segundo a segundo. Cacheadas a 15 minutos reducen la carga sobre
+PostHog y aceleran las páginas de resumen sin sacrificar frescura en las
+vistas de detalle.
+
+```typescript
+// Datos en vivo — listSessionsHogQL, listEventsHogQL
+runHogQL(projectId, apiKey, host, sql)         // revalidate: 60
+
+// Capa golden — getDashboardMetricsHogQL, getCampaignSummariesHogQL, getServiceSummariesHogQL
+runHogQLGolden(projectId, apiKey, host, sql)   // revalidate: 900, tags: ["golden"]
+```
+
+Para invalidar manualmente la capa golden (por ejemplo, después de un
+despliegue o un cambio importante de datos):
+
+```typescript
+import { revalidateTag } from "next/cache";
+revalidateTag("golden");
+```
+
+---
+
+## 4. Limitaciones de HogQL  
 
 ### Límites hardcodeados
 
@@ -164,7 +197,7 @@ diferencias importantes:
 
 ---
 
-## 4. Tracking Health — alcance real
+## 5. Tracking Health — alcance real
 
 La página `/tracking` muestra datos de "salud del tracking", pero
 **actualmente no audita datos reales**. El contenido es estático: es
@@ -183,7 +216,7 @@ Para validar datos reales usar `/api/diagnostics/posthog`.
 
 ---
 
-## 5. Diagnóstico PostHog — alcance real
+## 6. Diagnóstico PostHog — alcance real
 
 `GET /api/diagnostics/posthog` valida que la conexión con PostHog
 funciona y devuelve una muestra cruda de eventos y grabaciones.
@@ -205,7 +238,7 @@ eventos en PostHog con una visita de prueba usando una URL con UTMs.
 
 ---
 
-## 6. Multi-tenant — estado actual
+## 7. Multi-tenant — estado actual
 
 `workspace_id` está fijo como `"breezemobile"` (o el valor de la
 variable de entorno `WORKSPACE_ID`). No hay autenticación ni separación

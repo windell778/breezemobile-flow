@@ -26,10 +26,17 @@ type HogQLResponse = {
   columns: string[];
 };
 
-// Cache HogQL POST responses for 60 seconds.
-// The cache key is derived from all arguments (projectId + query string).
-// Different SQL strings → different cache entries, so filtered queries
-// (e.g. per visitorId) are cached independently.
+// Two-tier HogQL cache:
+//
+// runHogQL        — 60s TTL. For live queries: session lists, event lists, per-visitor data.
+//                   These need near-real-time freshness as new sessions arrive continuously.
+//
+// runHogQLGolden  — 900s TTL, tagged "golden". For aggregate metrics: dashboard totals,
+//                   campaign summaries, service summaries. These are pre-computed summaries
+//                   that don't need second-by-second freshness. Inspired by the golden-layer
+//                   pattern where stable aggregates are cached separately from live detail data.
+//                   Invalidate with revalidateTag("golden") when a forced refresh is needed.
+
 const _cachedHogQLPost = unstable_cache(
   async (projectId: string, apiKey: string, host: string, query: string): Promise<HogQLResponse> => {
     const client = new PostHogClient({ projectId, apiKey, host });
@@ -41,6 +48,17 @@ const _cachedHogQLPost = unstable_cache(
   { revalidate: 60 },
 );
 
+const _cachedHogQLPostGolden = unstable_cache(
+  async (projectId: string, apiKey: string, host: string, query: string): Promise<HogQLResponse> => {
+    const client = new PostHogClient({ projectId, apiKey, host });
+    return client.post<HogQLResponse>("/query/", {
+      query: { kind: "HogQLQuery", query },
+    });
+  },
+  ["posthog-hogql-golden"],
+  { revalidate: 900, tags: ["golden"] },
+);
+
 async function runHogQL(
   projectId: string,
   apiKey: string,
@@ -48,6 +66,15 @@ async function runHogQL(
   query: string,
 ): Promise<HogQLResponse> {
   return _cachedHogQLPost(projectId, apiKey, host, query);
+}
+
+async function runHogQLGolden(
+  projectId: string,
+  apiKey: string,
+  host: string,
+  query: string,
+): Promise<HogQLResponse> {
+  return _cachedHogQLPostGolden(projectId, apiKey, host, query);
 }
 
 function toRow(columns: string[], row: unknown[]): Record<string, unknown> {
@@ -362,7 +389,7 @@ export async function getDashboardMetricsHogQL(
   `;
 
   const [result, campaigns, services, recordingsMap] = await Promise.all([
-    runHogQL(projectId, apiKey, host, sql),
+    runHogQLGolden(projectId, apiKey, host, sql),
     getCampaignSummariesHogQL(projectId, apiKey, host, workspaceId),
     getServiceSummariesHogQL(projectId, apiKey, host, workspaceId),
     fetchRecordingsMap(projectId, apiKey, host, workspaceId),
@@ -410,7 +437,7 @@ export async function getCampaignSummariesHogQL(
     LIMIT 50
   `;
 
-  const result = await runHogQL(projectId, apiKey, host, sql);
+  const result = await runHogQLGolden(projectId, apiKey, host, sql);
   return result.results.map((row) => {
     const r = toRow(result.columns, row);
     return {
@@ -452,7 +479,7 @@ export async function getServiceSummariesHogQL(
     LIMIT 50
   `;
 
-  const result = await runHogQL(projectId, apiKey, host, sql);
+  const result = await runHogQLGolden(projectId, apiKey, host, sql);
   return result.results.map((row) => {
     const r = toRow(result.columns, row);
     return {
