@@ -43,6 +43,7 @@ Aquí se adaptó para dominios de UI/datos del producto.
 | `/visitantes` | `.claude/commands/visitantes.md` | Perfil de visitante, 7 tabs, journey |
 | `/grabaciones` | `.claude/commands/grabaciones.md` | Player rrweb, snapshots, recordings |
 | `/campanas` | `.claude/commands/campanas.md` | Atribución UTM, campañas, tasa WA |
+| `/data-quality` | `.claude/commands/data-quality.md` | Diagnósticos, drift de caché, validateMetrics |
 
 ---
 
