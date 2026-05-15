@@ -4,6 +4,9 @@
  * All rate computations across the platform must go through these functions.
  * Never compute rates inline — use these instead.
  *
+ * Full metric definitions (formula, source, freshness, warnings):
+ * → docs/metrics/definitions.md
+ *
  * Rules:
  * - whatsapp_click is a high-intent signal, NOT a confirmed lead or sale.
  * - All rates return integer percentages (0–100), never raw fractions.
