@@ -2,6 +2,7 @@
 // Used by PostHogAdapter for listSessions, listEvents, getDashboardMetrics, etc.
 // Server-side only — never import from client components.
 
+import { replayRate } from "@/lib/metrics";
 import { unstable_cache } from "next/cache";
 import type {
   Attribution,
@@ -406,7 +407,7 @@ export async function getDashboardMetricsHogQL(
     whatsappClicks: num(r.whatsapp_clicks),
     serviceClicks: num(r.service_clicks),
     recordings,
-    replayRate: totalSessions > 0 ? Math.round((recordings / totalSessions) * 100) : 0,
+    replayRate: replayRate(recordings, totalSessions),
     topCampaign: campaigns[0] ?? null,
     topService: services[0] ?? null,
   };

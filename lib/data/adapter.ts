@@ -1,3 +1,4 @@
+import { replayRate } from "@/lib/metrics";
 import type {
   CampaignSummary,
   DashboardMetrics,
@@ -212,7 +213,7 @@ class MockAdapter implements DataAdapter {
       whatsappClicks,
       serviceClicks,
       recordings,
-      replayRate: sessions.length > 0 ? Math.round((recordings / sessions.length) * 100) : 0,
+      replayRate: replayRate(recordings, sessions.length),
       topCampaign: campaigns[0] ?? null,
       topService: services[0] ?? null,
     };
