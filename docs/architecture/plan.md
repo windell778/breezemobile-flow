@@ -467,7 +467,7 @@ implementar el adapter definitivo.
 | Dashboard metrics | `unstable_cache` revalidate 900s, tag `"golden"` |
 | Campaign summaries | `unstable_cache` revalidate 900s, tag `"golden"` |
 | Service summaries | `unstable_cache` revalidate 900s, tag `"golden"` |
-| Tracking Health | Estático (sin caché, sin queries) |
+| Tracking Health | `unstable_cache` revalidate 900s, tag `"golden"` — solo con `DATA_SOURCE=posthog`; mock sin caché |
 
 Ver `docs/architecture/data-flow-and-adapter.md §3` para detalles de las
 dos capas de caché y cómo invalidar la capa golden con `revalidateTag("golden")`.

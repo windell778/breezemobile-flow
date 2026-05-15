@@ -58,11 +58,12 @@ Fase 0 (tracking confiable) está parcialmente validada:
 
 ## 5. Alcance real de herramientas de diagnóstico
 
-**Tracking Health (`/tracking`)** — muestra una guía de referencia del
-contrato de tracking formateada para la UI. **No audita datos reales.**
-No verifica que los eventos en PostHog tengan todos los campos correctos,
-ni valida GTM, dataLayer ni Meta Pixel. Es documentación interactiva,
-no un validador automático.
+**Tracking Health (`/tracking`)** — con `DATA_SOURCE=posthog` ejecuta
+queries HogQL reales (golden, 900s) para detectar sesiones sin atribución
+UTM en landing, eventos `whatsapp_click` sin `utm_campaign` en payload, y
+eventos sin `visitor_id`. Con `DATA_SOURCE=mock` muestra items estáticos de
+referencia. No valida GTM, dataLayer ni Meta Pixel, y no audita campos
+individuales por evento fuera de los tres checks actuales.
 
 **Diagnóstico (`/api/diagnostics/posthog`)** — verifica que la conexión
 con PostHog funciona y devuelve una muestra cruda. No valida campos
