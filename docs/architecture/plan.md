@@ -458,14 +458,19 @@ implementar el adapter definitivo.
 
 | Dato | Estrategia |
 |---|---|
-| Perfil de visitante | Next.js `cache()` + revalidate 60s |
-| Lista de sesiones | revalidate 60s |
-| Eventos de sesión | revalidate 300s |
+| Perfil de visitante | `unstable_cache` revalidate 60s (capa live) |
+| Lista de sesiones | `unstable_cache` revalidate 60s (capa live) |
+| Eventos de sesión | `unstable_cache` revalidate 60s (capa live) |
 | Recording metadata | DB propia, no se re-consulta a PostHog |
 | Eventos rrweb | Object storage, no se re-descargan de PostHog |
 | URL firmada del replay | Generada por request, TTL 15 min |
-| Campaign summaries | revalidate 300s |
-| Tracking Health | Sin caché, siempre fresco |
+| Dashboard metrics | `unstable_cache` revalidate 900s, tag `"golden"` |
+| Campaign summaries | `unstable_cache` revalidate 900s, tag `"golden"` |
+| Service summaries | `unstable_cache` revalidate 900s, tag `"golden"` |
+| Tracking Health | Estático (sin caché, sin queries) |
+
+Ver `docs/architecture/data-flow-and-adapter.md §3` para detalles de las
+dos capas de caché y cómo invalidar la capa golden con `revalidateTag("golden")`.
 
 ### Error handling
 

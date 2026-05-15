@@ -252,3 +252,218 @@ export const DEFAULT_WORKSPACE_ID = process.env.WORKSPACE_ID ?? "breezemobile";
 Todas las queries y referencias de storage usan este ID. Cuando se
 implemente multi-tenant (Fase 6), este ID deberá venir del contexto
 de autenticación del usuario, no de una env var global.
+
+---
+
+## 8. Patrón filter-to-adapter — por qué y cómo
+
+### El problema que resuelve
+
+Antes de este patrón, las páginas hacían dos cosas en orden:
+
+```
+1. getAdapter().listSessions(workspaceId)   // trae TODAS las sesiones
+2. allSessions.filter(s => ...)             // filtra en JS en la página
+```
+
+Esto significa que cada request de `/sesiones?filter=replay` descargaba
+todas las sesiones al servidor de Next.js solo para descartar el 90%.
+La carga se acumulaba tanto en PostHog (HogQL) como en memoria del server.
+
+### La solución: `SessionFilters` antes de llamar al adapter
+
+```typescript
+// app/sesiones/page.tsx — SessionsTable
+const adapterFilters: SessionFilters = {};
+if (p.filter === "meta")       adapterFilters.source = "Meta Ads";
+if (p.filter === "direct")     adapterFilters.source = "Direct";
+if (p.source)                  adapterFilters.source = p.source as Source;
+if (p.service)                 adapterFilters.service = p.service as ServiceKey;
+if (p.query)                   adapterFilters.search = p.query;
+if (p.filter === "replay")     adapterFilters.hasRecording = true;
+if (p.filter === "whatsapp")   adapterFilters.eventName = "whatsapp_click";
+if (p.filter === "service")    adapterFilters.eventName = "service_click";
+if (p.event)                   adapterFilters.eventName = p.event as EventName;
+
+const allSessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID, adapterFilters);
+```
+
+Los filtros viajan al adapter, que los aplica antes de devolver datos.
+En `MockAdapter` se aplican en memoria sobre los datos mock. En
+`PostHogAdapter`, algunos filtros se pueden bajar al SQL HogQL.
+
+### Qué filtros se bajan a SQL y cuáles no
+
+| Filtro `SessionFilters` | PostHogAdapter | Por qué |
+|---|---|---|
+| `visitorId` | SQL (`WHERE properties.visitor_id = '...'`) | ID controlado, formato seguro |
+| `sessionId` | SQL (`WHERE properties.session_id = '...'`) | ídem |
+| `source` | Memoria (post-fetch) | La fuente se infiere de UTMs; no hay columna directa |
+| `service` | Memoria (post-fetch) | ídem, inferida de eventos |
+| `search` | Memoria (post-fetch) | Texto libre — no bajar a SQL para evitar HogQL injection |
+| `hasRecording` | Memoria (post-fetch) | Depende de `fetchRecordingsMap` (REST, no HogQL) |
+| `eventName` | Memoria (post-fetch) | Si se bajara a SQL rompería el agrupamiento de sesiones* |
+
+*Si el WHERE SQL de `eventName` filtrara eventos individuales, HogQL
+devolvería solo los eventos que coinciden. Al agrupar por `session_id`,
+las sesiones quedarían con solo esos eventos — sin los demás. El resultado
+sería sesiones con duración 0, sin journey, con events.length = 1 aunque
+la sesión real tuviera 10 eventos.
+
+### Qué queda en JS (post-adapter)
+
+Dos filtros que por su naturaleza son post-fetch y permanecen en la página:
+
+```typescript
+const visible = allSessions.filter((session) => {
+  const matchesSinInteraccion = p.filter !== "sin_interaccion" || session.events.length === 1;
+  const matchesCampaign = !p.campaign || session.attribution.utm_campaign.toLowerCase() === p.campaign;
+  return matchesSinInteraccion && matchesCampaign;
+});
+```
+
+- `sin_interaccion`: filtra sesiones de un solo evento. No se puede bajar
+  a SQL porque requiere contar eventos por sesión después del agrupamiento.
+- `campaign`: filtra por `utm_campaign` exacto. Se mantiene en JS por ser
+  un filtro de texto libre con lógica case-insensitive no crítica en volumen.
+
+### ⚠️ No tocar: `search` en HogQL
+
+`adapterFilters.search` viaja al adapter, pero en `PostHogAdapter` se
+aplica en memoria (no en SQL). Esto es intencional. Si en algún momento
+alguien decide bajar `search` a una condición HogQL, DEBE sanitizarlo con
+una allowlist de caracteres antes de interpolarlo en el string SQL. El
+texto libre en queries es el vector clásico de injection.
+
+---
+
+## 9. Patrón `EmptyState`
+
+### Por qué existe
+
+Antes de este componente, cada página resolvía "sin resultados" de forma
+diferente: algunas mostraban texto inline, otras no mostraban nada, otras
+dejaban tablas vacías sin mensaje. La experiencia era inconsistente.
+
+### Implementación
+
+```typescript
+// components/ui/EmptyState.tsx
+type EmptyStateProps = { message?: string; };
+
+export function EmptyState({ message = "No hay datos disponibles." }: EmptyStateProps) {
+  return (
+    <div className="mt-4 grid place-items-center rounded-md border border-dashed
+                    border-slate-200 bg-slate-50 py-16 text-sm text-slate-500">
+      {message}
+    </div>
+  );
+}
+```
+
+### Dónde se usa
+
+| Página | Condición |
+|---|---|
+| `app/sesiones/page.tsx` | `visible.length === 0` después de filtros |
+| `app/eventos/page.tsx` | `visibleEvents.length === 0` después de filtros |
+| `app/grabaciones/page.tsx` | Lista de sesiones vacía |
+
+### Cuándo usarlo vs. no usarlo
+
+Usar `EmptyState` cuando el resultado vacío es esperado y correcto (sin datos
+que coincidan con el filtro). No usarlo para estados de error (HTTP 500, fallo
+de red) — esos necesitan manejo diferente. No usarlo dentro de tablas con
+estructura definida; colocarlo fuera de la tabla.
+
+---
+
+## 10. Patrón de renderizado: `force-dynamic` + Suspense
+
+### Por qué `force-dynamic` en todas las páginas
+
+Las páginas de datos leen `searchParams` (URL query params) en server
+components. Next.js en producción intentaría statically render páginas que
+no leen params dinámicos. Con `searchParams`, Next.js necesita `force-dynamic`
+para garantizar que cada request lee los params frescos del URL.
+
+Sin `force-dynamic`, una página con `?filter=replay` podría servir la versión
+cacheada de `?filter=meta` durante el TTL del static render.
+
+```typescript
+// Al inicio de cada page.tsx que lee searchParams
+export const dynamic = "force-dynamic";
+```
+
+Páginas con `force-dynamic`: `app/page.tsx`, `app/sesiones/page.tsx`,
+`app/eventos/page.tsx`, `app/grabaciones/page.tsx`, `app/campanas/page.tsx`,
+`app/servicios/page.tsx`, `app/tracking/page.tsx`.
+
+### Por qué Suspense con fallback
+
+Las páginas que hacen fetches al adapter los envuelven en un componente
+hijo async, suspendido con un fallback de loading:
+
+```tsx
+// app/sesiones/page.tsx
+<Suspense fallback={<SessionsLoading />}>
+  <SessionsTable params={params} />
+</Suspense>
+```
+
+Esto habilita streaming: Next.js envía el HTML del layout y el fallback
+inmediatamente, sin esperar a que el fetch de PostHog complete. El componente
+`SessionsTable` hace el fetch y se envía cuando está listo.
+
+**Consecuencia importante:** si se mueve la lógica de fetch al componente
+padre (fuera de Suspense), Next.js no puede hacer streaming y la página
+bloquea hasta que el fetch completa — el usuario ve pantalla en blanco.
+
+### ⚠️ No tocar
+
+- No mover fetches del adapter fuera del componente suspendido.
+- No quitar `force-dynamic` sin probar que la página funciona con filtros
+  dinámicos en producción.
+- No agregar `revalidate` a nivel de página — el control de TTL vive en
+  las funciones `runHogQL` y `runHogQLGolden`.
+
+---
+
+## 11. `shortId` — por qué existe y cómo funciona
+
+### El problema
+
+Los IDs internos tienen el formato `visitor_{timestamp}_{random}` y
+`sess_{timestamp}_{random}`. Por ejemplo:
+`sess_1778712345678_cie4wf7`. El timestamp (13 dígitos) es idéntico o
+muy similar entre sesiones cercanas en el tiempo, haciendo difícil
+distinguir visualmente sesiones en una tabla.
+
+La parte verdaderamente única es el sufijo random después del último `_`.
+
+### Implementación
+
+```typescript
+// lib/labels.ts
+export function shortId(id: string): string {
+  const lastUnderscore = id.lastIndexOf("_");
+  if (lastUnderscore !== -1 && id.length - lastUnderscore - 1 >= 4) {
+    return id.slice(lastUnderscore + 1);
+  }
+  return id.slice(0, 8);  // fallback para UUIDs u otros formatos
+}
+```
+
+- Extrae el sufijo después del último `_` si tiene al menos 4 caracteres.
+- Fallback a los primeros 8 caracteres para IDs sin guiones bajos (UUIDs).
+
+### Dónde se usa
+
+En tablas y listas donde mostrar el ID completo sería ilegible:
+`app/sesiones/page.tsx` (columnas session_id y visitor_id).
+
+### ⚠️ No tocar
+
+`shortId` es solo display. El ID completo (`session.session_id`,
+`session.visitor_id`) debe usarse para todas las URLs, queries, y lógica.
+Nunca almacenar ni comparar `shortId` — es presentacional.
