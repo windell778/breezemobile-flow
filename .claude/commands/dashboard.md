@@ -17,10 +17,31 @@ Contexto de trabajo para el dashboard principal de BreezeMobile Flow.
 
 ## Caché (golden layer)
 
-- `getDashboardMetricsHogQL` usa `runHogQLGolden` — caché de **900s (15 min)**
+- `getDashboardMetricsHogQL` está envuelta en `_cachedDashboardMetrics` — caché de **900s**, tag `"golden"`
+- El ensamblaje completo (métricas + campañas + servicios + grabaciones) se cachea como unidad
 - `getCampaignSummariesHogQL` y `getServiceSummariesHogQL` también son golden (900s)
 - Las métricas del dashboard son datos agregados; no necesitan frescura de 60s
 - `RecentSessions` usa `listSessions` con caché de 60s (datos en vivo)
+
+### `cached_at` — semántica correcta
+
+`DashboardMetrics.cached_at` es un timestamp ISO generado **dentro** de
+`_cachedDashboardMetrics`. Se congela cuando la caché se popula y solo
+cambia cuando expira (900s) o se invalida con `POST /api/revalidate`.
+
+**⚠️ No mover `cached_at` fuera de la función cacheada.** Si se genera
+fuera, se actualizaría en cada request aunque los datos fueran de hace 14
+minutos — la UI mostraría "hace 0 min" incorrectamente.
+
+### `whatsappClicks` — es conteo de eventos, no de sesiones únicas
+
+`DashboardMetrics.whatsappClicks` = suma de todos los eventos `whatsapp_click`.
+Una sola sesión puede generar múltiples eventos. Por lo tanto:
+
+- `whatsappClicks > sessions` **no es un error** — es posible y esperado
+- No se valida `whatsappClicks > sessions` en `validateMetrics()`
+- Si en el futuro se necesita "sesiones con al menos un whatsapp_click",
+  agregar una métrica separada `sessionsWithWhatsapp` con `uniqIf()`
 
 ## Qué se puede mostrar
 

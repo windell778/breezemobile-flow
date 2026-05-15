@@ -33,21 +33,19 @@ export function waRate(whatsappClicks: number, totalSessions: number): number {
  * These are sanity checks for data integrity, not business logic.
  * A warning does not mean the data is wrong — it means something looks unusual
  * and is worth investigating (e.g. PostHog tracking gap, stale data, bug).
+ *
+ * NOTE: whatsappClicks > sessions is NOT validated here. whatsappClicks is a
+ * raw event count — a single session can have multiple whatsapp_click events.
+ * Validating whatsappClicks against sessions would produce false positives.
+ * To validate unique sessions-with-whatsapp, a separate sessionsWithWhatsapp
+ * metric would be needed.
  */
 export function validateMetrics(metrics: {
   sessions: number;
-  whatsappClicks: number;
   serviceClicks: number;
   replayRate: number;
 }): string[] {
   const warnings: string[] = [];
-
-  if (metrics.whatsappClicks > metrics.sessions) {
-    warnings.push(
-      `whatsapp_clicks (${metrics.whatsappClicks}) supera el total de sesiones (${metrics.sessions}). ` +
-      `Puede indicar un problema de tracking o datos de sesiones incompletos.`
-    );
-  }
 
   if (metrics.serviceClicks > metrics.sessions * 10) {
     warnings.push(
