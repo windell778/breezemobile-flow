@@ -25,3 +25,53 @@ export function waRate(whatsappClicks: number, totalSessions: number): number {
   if (totalSessions === 0) return 0;
   return Math.round((whatsappClicks / totalSessions) * 100);
 }
+
+/**
+ * Validates that dashboard metrics are internally consistent.
+ * Returns an array of human-readable warnings. Empty array means healthy.
+ *
+ * These are sanity checks for data integrity, not business logic.
+ * A warning does not mean the data is wrong — it means something looks unusual
+ * and is worth investigating (e.g. PostHog tracking gap, stale data, bug).
+ */
+export function validateMetrics(metrics: {
+  sessions: number;
+  whatsappClicks: number;
+  serviceClicks: number;
+  replayRate: number;
+}): string[] {
+  const warnings: string[] = [];
+
+  if (metrics.whatsappClicks > metrics.sessions) {
+    warnings.push(
+      `whatsapp_clicks (${metrics.whatsappClicks}) supera el total de sesiones (${metrics.sessions}). ` +
+      `Puede indicar un problema de tracking o datos de sesiones incompletos.`
+    );
+  }
+
+  if (metrics.serviceClicks > metrics.sessions * 10) {
+    warnings.push(
+      `service_clicks (${metrics.serviceClicks}) parece muy alto para ${metrics.sessions} sesiones. ` +
+      `Verificar que no haya eventos duplicados.`
+    );
+  }
+
+  if (metrics.replayRate > 100) {
+    warnings.push(`replayRate (${metrics.replayRate}%) supera 100%. Error de cálculo.`);
+  }
+
+  return warnings;
+}
+
+/**
+ * Returns a human-readable "hace X min/h" string from an ISO timestamp.
+ * Used to display golden cache freshness in the dashboard.
+ */
+export function timeAgo(isoString: string): string {
+  const diffMs = Date.now() - new Date(isoString).getTime();
+  const diffMin = Math.floor(diffMs / 60_000);
+  if (diffMin < 1) return "hace menos de 1 min";
+  if (diffMin < 60) return `hace ${diffMin} min`;
+  const diffH = Math.floor(diffMin / 60);
+  return `hace ${diffH} h`;
+}

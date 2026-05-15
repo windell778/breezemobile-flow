@@ -155,4 +155,5 @@ export type DashboardMetrics = {
   replayRate: number;
   topCampaign: CampaignSummary | null;
   topService: ServicePageSummary | null;
+  cached_at: string;
 };

@@ -410,6 +410,7 @@ export async function getDashboardMetricsHogQL(
     replayRate: replayRate(recordings, totalSessions),
     topCampaign: campaigns[0] ?? null,
     topService: services[0] ?? null,
+    cached_at: new Date().toISOString(),
   };
 }
 
