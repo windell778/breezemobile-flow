@@ -46,6 +46,8 @@ Compara métricas golden del dashboard (HogQL, 900s) contra valores computados l
 
 Valida conectividad con PostHog y devuelve muestra cruda de eventos y grabaciones.
 
+**Auth:** No requiere auth — el endpoint es abierto actualmente.
+
 **Lo que valida:** configuración de `POSTHOG_PROJECT_ID`/`POSTHOG_API_KEY`, respuesta de API, presencia de eventos.
 
 **Lo que NO valida:** formato correcto de `visitor_id`/`session_id`, campos UTM presentes, que las grabaciones sean reproducibles.
@@ -61,7 +63,7 @@ Invalida la caché golden manualmente. Llama `revalidateTag("golden", "max")`.
 `lib/metrics.ts` → `validateMetrics(metrics)` devuelve un array de warnings. Se ejecuta en el servidor al armar el dashboard.
 
 **Qué chequea:**
-- `sessions === 0` con `serviceClicks > 0` → dato inconsistente
+- `serviceClicks > sessions * 10` → conteo de clicks anormalmente alto respecto a sesiones
 - `replayRate > 100` → error de cálculo
 
 **Qué NO chequea (y por qué):**
@@ -87,9 +89,8 @@ Invalida la caché golden manualmente. Llama `revalidateTag("golden", "max")`.
 curl http://localhost:3000/api/diagnostics/consistency \
   -H "Authorization: Bearer <REVALIDATE_SECRET>"
 
-# Conectividad PostHog
-curl http://localhost:3000/api/diagnostics/posthog \
-  -H "Authorization: Bearer <REVALIDATE_SECRET>"
+# Conectividad PostHog (no requiere auth)
+curl http://localhost:3000/api/diagnostics/posthog
 
 # Invalidar caché golden
 curl -X POST http://localhost:3000/api/revalidate \
