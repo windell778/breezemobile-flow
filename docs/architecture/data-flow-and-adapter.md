@@ -294,15 +294,21 @@ En `MockAdapter` se aplican en memoria sobre los datos mock. En
 
 ### Qué filtros se bajan a SQL y cuáles no
 
+`SessionFilters` solo tiene los campos que la página de sesiones necesita.
+`visitorId` y `sessionId` **no pertenecen a `SessionFilters`** — pertenecen
+a `EventFilters` y se usan en `listEventsHogQL` (no en `listSessionsHogQL`).
+
 | Filtro `SessionFilters` | PostHogAdapter | Por qué |
 |---|---|---|
-| `visitorId` | SQL (`WHERE properties.visitor_id = '...'`) | ID controlado, formato seguro |
-| `sessionId` | SQL (`WHERE properties.session_id = '...'`) | ídem |
 | `source` | Memoria (post-fetch) | La fuente se infiere de UTMs; no hay columna directa |
 | `service` | Memoria (post-fetch) | ídem, inferida de eventos |
 | `search` | Memoria (post-fetch) | Texto libre — no bajar a SQL para evitar HogQL injection |
 | `hasRecording` | Memoria (post-fetch) | Depende de `fetchRecordingsMap` (REST, no HogQL) |
 | `eventName` | Memoria (post-fetch) | Si se bajara a SQL rompería el agrupamiento de sesiones* |
+
+Los únicos filtros que `listEventsHogQL` baja a SQL son `visitorId` y
+`sessionId` (de `EventFilters`), porque son IDs internos con formato controlado.
+Ver §4 para la nota de seguridad sobre interpolación de IDs.
 
 *Si el WHERE SQL de `eventName` filtrara eventos individuales, HogQL
 devolvería solo los eventos que coinciden. Al agrupar por `session_id`,
