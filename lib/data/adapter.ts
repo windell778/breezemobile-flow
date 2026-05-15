@@ -216,6 +216,7 @@ class MockAdapter implements DataAdapter {
       replayRate: replayRate(recordings, sessions.length),
       topCampaign: campaigns[0] ?? null,
       topService: services[0] ?? null,
+      cached_at: new Date().toISOString(),
     };
   }
 }

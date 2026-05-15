@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { RecentSessions } from "@/components/dashboard/RecentSessions";
 import { getPostHogAdapterNotes } from "@/lib/analytics";
 import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
+import { validateMetrics, timeAgo } from "@/lib/metrics";
 import { humanValue } from "@/lib/labels";
 
 export default async function Home() {
@@ -19,6 +20,8 @@ export default async function Home() {
     adapter.getTrackingHealth(workspaceId),
     adapter.listSessions(workspaceId, { limit: 5 }),
   ]);
+
+  const metricWarnings = validateMetrics(metrics);
 
   return (
     <AppShell
@@ -39,6 +42,19 @@ export default async function Home() {
           <MetricCard label="Replay disponible" value={`${metrics.replayRate}%`} detail={`${metrics.recordings} sesiones con grabacion PostHog.`} />
         </Link>
       </section>
+
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
+        <span>Métricas agregadas · {timeAgo(metrics.cached_at)} · caché de 15 min</span>
+      </div>
+
+      {metricWarnings.length > 0 && (
+        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <p className="font-semibold">Anomalías detectadas en métricas del dashboard:</p>
+          <ul className="mt-1 list-inside list-disc space-y-0.5">
+            {metricWarnings.map((w) => <li key={w}>{w}</li>)}
+          </ul>
+        </div>
+      )}
 
       <section className="mt-6 grid gap-4 xl:grid-cols-[1.4fr_1fr]">
         <div className="bf-panel p-4">
