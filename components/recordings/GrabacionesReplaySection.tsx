@@ -51,6 +51,11 @@ export function GrabacionesReplaySection({ activeSession, scopedSessions, servic
           </span>
           <span className="text-slate-500">{formatDateTime(activeSession.timestamp)}</span>
           <span className="text-slate-600">{humanValue(activeSession.service)} · {activeSession.page_path}</span>
+          {service && activeSession.service !== service && activeSession.events.some((e) => e.service === service) && (
+            <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700">
+              Incluye eventos de {humanValue(service)}
+            </span>
+          )}
           <span className="text-slate-500">{formatDuration(activeSession.duration)}</span>
           <div className="flex flex-wrap gap-2">
             <SourceBadge source={activeSession.source} />
@@ -78,6 +83,7 @@ export function GrabacionesReplaySection({ activeSession, scopedSessions, servic
               events={activeSession.events}
               sessionStartedAt={activeSession.timestamp}
               onSeek={hasRecording ? handleSeek : undefined}
+              serviceFilter={service || undefined}
             />
           </div>
         </div>
@@ -105,6 +111,9 @@ export function GrabacionesReplaySection({ activeSession, scopedSessions, servic
                 <p className="mt-1 text-xs text-slate-500">
                   {session.recording?.status === "available" ? "Con grabación" : "Sin grabación"} · {session.events.length} eventos
                 </p>
+                {service && session.service !== service && session.events.some((e) => e.service === service) && (
+                  <p className="mt-1 text-xs text-amber-600">Incluye eventos de {humanValue(service)}</p>
+                )}
               </Link>
             ))}
           </div>

@@ -13,6 +13,8 @@ type Props = {
    * See docs/architecture/recordings.md §11 — timestamp alignment caveats.
    */
   onSeek?: (seekMs: number) => void;
+  /** When set, events whose event.service matches get a "Coincide con filtro" badge. */
+  serviceFilter?: string;
 };
 
 const eventColors: Record<string, string> = {
@@ -37,7 +39,7 @@ function formatOffset(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export function ReplayTimeline({ events, sessionStartedAt, onSeek }: Props) {
+export function ReplayTimeline({ events, sessionStartedAt, onSeek, serviceFilter }: Props) {
   if (!events.length) {
     return (
       <p className="text-sm text-zinc-500">Sin eventos registrados para esta sesión.</p>
@@ -75,6 +77,11 @@ export function ReplayTimeline({ events, sessionStartedAt, onSeek }: Props) {
               {event.service && event.service !== "general" && (
                 <span className="text-xs text-zinc-500">
                   {serviceLabels[event.service]}
+                </span>
+              )}
+              {serviceFilter && event.service === serviceFilter && (
+                <span className="mt-0.5 w-fit rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
+                  Coincide con filtro
                 </span>
               )}
             </div>
