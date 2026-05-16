@@ -33,6 +33,11 @@ If the task touches recordings, replay, rrweb, PostHog snapshots,
 the source of truth for `blob_v2`, gzip latin1, `window_id`, and the
 failure modes that can break the player.
 
+If the task touches replay privacy, masking, `data-ph-mask`,
+`data-ph-no-capture`, `data-ph-unmask`, PostHog Session Replay config,
+or which elements should be hidden/obscured in recordings, read
+`docs/tracking/replay-privacy.md` before changing code.
+
 If the task touches the DataAdapter, HogQL queries, or session construction,
 also read `docs/architecture/data-flow-and-adapter.md`.
 
