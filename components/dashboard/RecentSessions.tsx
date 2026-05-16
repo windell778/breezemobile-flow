@@ -32,15 +32,15 @@ export function RecentSessions({ sessions }: RecentSessionsProps) {
               intentBorder[session.intent_level] ?? "border-l-slate-200"
             }`}
           >
-            {/* Stretched link — covers the full row, sits below interactive elements */}
+            {/* Stretched link — z-10 covers the full row including content areas */}
             <Link
               href={`/visitantes/${session.visitor_id}?session=${session.session_id}`}
               aria-label={`Ver visitante ${shortId(session.visitor_id)} · sesión ${shortId(session.session_id)}`}
-              className="absolute inset-0"
+              className="absolute inset-0 z-10"
             />
 
-            {/* Content — z-10 keeps it above the stretched link visually */}
-            <div className="relative z-10">
+            {/* Content — pointer-events-none so clicks pass through to the stretched link */}
+            <div className="pointer-events-none">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span
@@ -58,10 +58,10 @@ export function RecentSessions({ sessions }: RecentSessionsProps) {
                   <SourceBadge source={session.source} />
                   <StatusBadge label={`${session.intent_level} intención`} />
                   {session.recording?.status === "available" && (
-                    // z-20 ensures Replay is clickable above the stretched link
+                    // z-20 + pointer-events-auto makes Replay independently clickable
                     <Link
                       href={`/grabaciones?session=${session.session_id}`}
-                      className="relative z-20 bf-chip border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      className="relative z-20 pointer-events-auto bf-chip border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                     >
                       Replay
                     </Link>
