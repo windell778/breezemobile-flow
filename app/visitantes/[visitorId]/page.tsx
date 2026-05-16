@@ -26,6 +26,8 @@ const tabs = [
   ["tecnico", "Técnico"],
 ];
 
+const intentRank: Record<string, number> = { Alta: 3, Media: 2, Baja: 1 };
+
 export default async function VisitorPage({ params, searchParams }: PageProps) {
   const { visitorId } = await params;
   const query = (await searchParams) || {};
@@ -46,34 +48,70 @@ export default async function VisitorPage({ params, searchParams }: PageProps) {
 
   const activeTab = String(query.tab || "resumen");
   const summary = buildVisitorSummary(visitorSessions);
+
+  // KPIs computed from sessions
+  const waClicks = visitorSessions.reduce(
+    (acc, s) => acc + s.events.filter((e) => e.event_name === "whatsapp_click").length,
+    0
+  );
+  const servicesViewed = new Set(visitorSessions.map((s) => s.service)).size;
+  const recordingsCount = visitorSessions.filter((s) => s.recording?.status === "available").length;
+  const maxIntent = visitorSessions.reduce<string>((best, s) => {
+    return (intentRank[s.intent_level] ?? 0) > (intentRank[best] ?? 0) ? s.intent_level : best;
+  }, "Baja");
+
   const tabHref = (tab: string, sessionId = activeSession.session_id) =>
     `/visitantes/${visitorId}?session=${sessionId}${tab === "resumen" ? "" : `&tab=${tab}`}`;
 
   return (
-    <AppShell
-      title={`Visitor Intelligence: ${shortId(visitorId)}`}
-      description="Expediente de comportamiento anónimo: sesiones, replay, journey, eventos, atribución y payload técnico."
-    >
-      <Link href="/sesiones" className="bf-control mb-4 bg-white text-slate-700 hover:bg-slate-50">
-        Volver a sesiones
+    <AppShell title="Visitor Intelligence">
+      <Link href="/sesiones" className="bf-control mb-5 bg-white text-slate-600 hover:bg-slate-50">
+        ← Sesiones
       </Link>
 
-      <section className="bf-panel grid gap-2 p-3 md:grid-cols-3 xl:grid-cols-6">
-        <HeaderStat label="Última actividad" value={formatDateTime(summary.last.timestamp)} />
-        <HeaderStat label="Servicio principal" value={humanValue(summary.primaryService)} />
-        <HeaderStat label="Fuente inicial" value={summary.firstSource} />
-        <HeaderStat label="Última fuente" value={summary.lastSource} />
-        <HeaderStat label="Último evento" value={eventLabels[summary.lastEvent]} />
-        <HeaderStat label="Estado" value={summary.state} />
-      </section>
+      {/* Expediente header */}
+      <div className="bf-panel p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+              Visitante anónimo
+            </p>
+            <h2 className="mt-1.5 font-mono text-xl font-semibold text-slate-950">
+              {shortId(visitorId)}
+            </h2>
+            <p className="mt-0.5 font-mono text-xs text-slate-400">{visitorId}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <StatusBadge label={`${maxIntent} intención`} />
+            <SourceBadge source={summary.firstSource} />
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-500">
+          <span>Última actividad: <span className="text-slate-800">{formatDateTime(summary.last.timestamp)}</span></span>
+          <span>Servicio principal: <span className="text-slate-800">{humanValue(summary.primaryService)}</span></span>
+          <span>Fuente inicial: <span className="text-slate-800">{summary.firstSource}</span></span>
+          <span>Estado: <span className="text-slate-800">{summary.state}</span></span>
+        </div>
+      </div>
 
+      {/* KPIs */}
+      <div className="mt-3 grid gap-3 sm:grid-cols-4">
+        <KpiCard label="Sesiones" value={visitorSessions.length} />
+        <KpiCard label="WA clicks" value={waClicks} note="señal de intención" />
+        <KpiCard label="Servicios vistos" value={servicesViewed} />
+        <KpiCard label="Grabaciones" value={recordingsCount} />
+      </div>
+
+      {/* Tabs */}
       <nav className="mt-4 flex flex-wrap gap-2">
         {tabs.map(([key, label]) => (
           <Link
             key={key}
             href={tabHref(key)}
             className={`bf-chip ${
-              activeTab === key ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              activeTab === key
+                ? "border-slate-950 bg-slate-950 text-white"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
             }`}
           >
             {label}
@@ -82,11 +120,19 @@ export default async function VisitorPage({ params, searchParams }: PageProps) {
       </nav>
 
       <section className="bf-defer mt-4">
-        {activeTab === "resumen" ? <SummaryTab sessions={visitorSessions} activeSession={activeSession} visitorId={visitorId} /> : null}
-        {activeTab === "grabaciones" ? <RecordingsTab sessions={visitorSessions} visitorId={visitorId} activeSessionId={activeSession.session_id} /> : null}
-        {activeTab === "journey" ? <JourneyTab sessions={visitorSessions} /> : null}
-        {activeTab === "sesiones" ? <SessionsTab sessions={visitorSessions} visitorId={visitorId} activeSessionId={activeSession.session_id} /> : null}
-        {activeTab === "eventos" ? <EventsTab sessions={visitorSessions} activeSessionId={activeSession.session_id} /> : null}
+        {activeTab === "resumen" ? (
+          <SummaryTab sessions={visitorSessions} activeSession={activeSession} visitorId={visitorId} />
+        ) : null}
+        {activeTab === "grabaciones" ? (
+          <RecordingsTab sessions={visitorSessions} visitorId={visitorId} activeSessionId={activeSession.session_id} />
+        ) : null}
+        {activeTab === "journey" ? <JourneyTab sessions={visitorSessions} visitorId={visitorId} /> : null}
+        {activeTab === "sesiones" ? (
+          <SessionsTab sessions={visitorSessions} visitorId={visitorId} activeSessionId={activeSession.session_id} />
+        ) : null}
+        {activeTab === "eventos" ? (
+          <EventsTab sessions={visitorSessions} activeSessionId={activeSession.session_id} />
+        ) : null}
         {activeTab === "atribucion" ? <AttributionTab session={activeSession} /> : null}
         {activeTab === "tecnico" ? <TechnicalTab session={activeSession} /> : null}
       </section>
@@ -94,27 +140,31 @@ export default async function VisitorPage({ params, searchParams }: PageProps) {
   );
 }
 
-function HeaderStat({ label, value }: { label: string; value: string }) {
+function KpiCard({ label, value, note }: { label: string; value: number; note?: string }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-50 p-2.5">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className="mt-1 break-words text-sm font-semibold text-slate-950">{value}</p>
+    <div className="bf-panel p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
+      <p className="mt-2 font-mono text-2xl font-semibold text-slate-950">{value}</p>
+      {note ? <p className="mt-1 text-xs text-slate-400">{note}</p> : null}
     </div>
   );
 }
 
 function SummaryTab({ sessions, activeSession, visitorId }: { sessions: Session[]; activeSession: Session; visitorId: string }) {
-  const importantEvents = sessions.flatMap((session) => session.events.filter((event) => event.event_name !== "page_view_custom")).slice(-4);
+  const importantEvents = sessions
+    .flatMap((s) => s.events.filter((e) => e.event_name !== "page_view_custom"))
+    .slice(-4);
   const hasRecording = activeSession.recording?.status === "available";
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
       <div className="bf-panel p-4">
-        <h2 className="text-lg font-semibold text-slate-950">Qué sabemos</h2>
+        <h2 className="text-base font-semibold text-slate-950">Qué sabemos</h2>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          Este visitante tiene {sessions.length} sesiones registradas. La sesión seleccionada es{" "}
-          <span title={activeSession.session_id} className="font-mono">{shortId(activeSession.session_id)}</span>,
-          con origen {activeSession.source} y servicio {humanValue(activeSession.service)}.
+          Este visitante tiene {sessions.length} sesión{sessions.length !== 1 ? "es" : ""} registrada{sessions.length !== 1 ? "s" : ""}.
+          La sesión seleccionada{" "}
+          <span className="font-mono" title={activeSession.session_id}>{shortId(activeSession.session_id)}</span>{" "}
+          llegó desde {activeSession.source} e interactuó con {humanValue(activeSession.service)}.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <SourceBadge source={activeSession.source} />
@@ -124,7 +174,7 @@ function SummaryTab({ sessions, activeSession, visitorId }: { sessions: Session[
       </div>
 
       <div className="bf-panel p-4">
-        <h2 className="text-lg font-semibold text-slate-950">Sesión seleccionada</h2>
+        <h2 className="text-base font-semibold text-slate-950">Sesión seleccionada</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <KeyValue label="Página" value={activeSession.page_path} />
           <KeyValue label="Campaña" value={activeSession.attribution.utm_campaign || "Sin campaña"} />
@@ -132,22 +182,32 @@ function SummaryTab({ sessions, activeSession, visitorId }: { sessions: Session[
           <KeyValue label="Duración" value={formatDuration(activeSession.duration)} />
         </div>
         {hasRecording ? (
-          <Link href={`/visitantes/${visitorId}?session=${activeSession.session_id}&tab=grabaciones`} className="bf-control mt-4 border-slate-950 bg-slate-950 text-white hover:bg-slate-800">
-            Abrir grabación
+          <Link
+            href={`/visitantes/${visitorId}?session=${activeSession.session_id}&tab=grabaciones`}
+            className="bf-control mt-4 border-slate-950 bg-slate-950 text-white hover:bg-slate-800"
+          >
+            Ver grabación
           </Link>
         ) : null}
       </div>
 
       <div className="bf-panel p-4 xl:col-span-2">
-        <h2 className="text-lg font-semibold text-slate-950">Últimos eventos importantes</h2>
+        <h2 className="text-base font-semibold text-slate-950">Últimos eventos de intención</h2>
         <div className="mt-4 space-y-2">
-          {importantEvents.length ? importantEvents.map((event) => (
-            <div key={event.event_id} className="grid gap-2 rounded-md border border-slate-200 p-2.5 text-sm md:grid-cols-[180px_1fr_1fr]">
-              <span className="text-slate-500">{formatDateTime(event.timestamp)}</span>
-              <span className="font-medium text-slate-950">{eventLabels[event.event_name]}</span>
-              <span className="text-slate-600">{event.cta_text || event.page_path}</span>
-            </div>
-          )) : <p className="text-sm text-slate-500">Solo página vista registrada.</p>}
+          {importantEvents.length ? (
+            importantEvents.map((event) => (
+              <div
+                key={event.event_id}
+                className="grid gap-2 rounded-md border border-slate-200 p-2.5 text-sm md:grid-cols-[180px_1fr_1fr]"
+              >
+                <span className="text-slate-500">{formatDateTime(event.timestamp)}</span>
+                <span className="font-medium text-slate-950">{eventLabels[event.event_name]}</span>
+                <span className="text-slate-600">{event.cta_text || event.page_path}</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-slate-500">Solo página vista registrada en esta sesión.</p>
+          )}
         </div>
       </div>
     </div>
@@ -161,21 +221,39 @@ function RecordingsTab({ sessions, visitorId, activeSessionId }: { sessions: Ses
 
   return (
     <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
-      <div>{featured ? <ReplayPreview session={featured} /> : <div className="bf-panel p-4 text-sm text-slate-500">Este visitante no tiene grabaciones disponibles.</div>}</div>
+      <div>
+        {featured ? (
+          <ReplayPreview session={featured} />
+        ) : (
+          <div className="bf-panel p-4 text-sm text-slate-500">
+            Este visitante no tiene grabaciones disponibles.
+          </div>
+        )}
+      </div>
       <div className="bf-panel p-4">
-        <h2 className="text-lg font-semibold text-slate-950">Grabaciones del visitante</h2>
+        <h2 className="text-base font-semibold text-slate-950">Grabaciones del visitante</h2>
         <div className="mt-4 space-y-3">
           {sessions.map((session) => (
             <Link
               key={session.session_id}
               href={`/visitantes/${visitorId}?session=${session.session_id}&tab=grabaciones`}
-              className={`block rounded-md border p-2.5 ${session.session_id === activeSessionId ? "border-slate-900 bg-slate-50" : "border-slate-200 hover:bg-slate-50"}`}
+              className={`block rounded-md border p-2.5 ${
+                session.session_id === activeSessionId
+                  ? "border-slate-900 bg-slate-50"
+                  : "border-slate-200 hover:bg-slate-50"
+              }`}
             >
               <div className="flex items-center justify-between gap-3">
-                <p className="font-medium text-slate-950" title={session.session_id}>Sesión {shortId(session.session_id)}</p>
-                <StatusBadge label={session.recording?.status === "available" ? "Grabación disponible" : "Sin grabación"} />
+                <p className="font-medium text-slate-950" title={session.session_id}>
+                  Sesión {shortId(session.session_id)}
+                </p>
+                <StatusBadge
+                  label={session.recording?.status === "available" ? "Grabación" : "Sin replay"}
+                />
               </div>
-              <p className="mt-1 text-sm text-slate-500">{session.page_path} · {formatDuration(session.duration)}</p>
+              <p className="mt-1 text-sm text-slate-500">
+                {session.page_path} · {formatDuration(session.duration)}
+              </p>
             </Link>
           ))}
         </div>
@@ -184,29 +262,78 @@ function RecordingsTab({ sessions, visitorId, activeSessionId }: { sessions: Ses
   );
 }
 
-function JourneyTab({ sessions }: { sessions: Session[] }) {
-  const steps: { key: string; title: string; timestamp: string; session: Session; detail?: string }[] = sessions.flatMap((session) => [
-    { key: `${session.session_id}-entry`, title: `Entrada desde ${session.source}`, timestamp: session.timestamp, session },
-    ...session.events.map((event) => ({ key: event.event_id, title: eventLabels[event.event_name], timestamp: event.timestamp, session, detail: event.cta_text })),
-  ]);
+const eventDot: Record<string, string> = {
+  whatsapp_click: "bg-emerald-500",
+  service_click: "bg-blue-500",
+  page_view_custom: "bg-slate-300",
+};
 
+function JourneyTab({ sessions, visitorId }: { sessions: Session[]; visitorId: string }) {
   return (
-    <div className="bf-panel p-4">
-      <h2 className="text-lg font-semibold text-slate-950">Journey</h2>
-      <div className="mt-5 space-y-3">
-        {steps.map((step, index) => (
-          <div key={step.key} className="grid gap-3 rounded-md border border-slate-200 p-2.5 md:grid-cols-[44px_1fr_auto] md:items-center">
-            <div className="grid h-8 w-8 place-items-center rounded-md bg-slate-100 text-sm font-semibold text-slate-800">{index + 1}</div>
-            <div>
-              <p className="font-medium text-slate-950">{step.title}</p>
-              <p className="mt-1 text-sm text-slate-500" title={step.session.session_id}>
-                Sesión {shortId(step.session.session_id)} · {step.session.page_path} · {step.detail || humanValue(step.session.service)}
-              </p>
+    <div className="space-y-4">
+      {sessions.map((session, idx) => {
+        const hasRecording = session.recording?.status === "available";
+        return (
+          <div key={session.session_id} className="bf-panel overflow-hidden">
+            {/* Session header */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-bold text-white">
+                  {idx + 1}
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-slate-950">
+                    Sesión{" "}
+                    <span className="font-mono font-normal text-slate-500">{shortId(session.session_id)}</span>
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {formatDateTime(session.timestamp)} · {session.source} · {formatDuration(session.duration)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <SourceBadge source={session.source} />
+                <StatusBadge label={`${session.intent_level} intención`} />
+                {hasRecording && (
+                  <Link
+                    href={`/visitantes/${visitorId}?session=${session.session_id}&tab=grabaciones`}
+                    className="bf-chip border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                  >
+                    Ver replay
+                  </Link>
+                )}
+              </div>
             </div>
-            <p className="text-sm text-slate-500">{formatDateTime(step.timestamp)}</p>
+
+            {/* Campaign context */}
+            {session.attribution.utm_campaign && (
+              <div className="border-b border-slate-100 px-4 py-2 text-xs text-slate-500">
+                Campaña: <span className="font-medium text-slate-700">{session.attribution.utm_campaign}</span>
+                {session.attribution.utm_medium && ` · ${session.attribution.utm_medium}`}
+              </div>
+            )}
+
+            {/* Events */}
+            <div className="divide-y divide-slate-100 px-4">
+              {session.events.map((event) => (
+                <div key={event.event_id} className="flex items-start gap-3 py-2.5">
+                  <span
+                    className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${eventDot[event.event_name] ?? "bg-slate-300"}`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm font-medium text-slate-950">{eventLabels[event.event_name]}</span>
+                    {event.cta_text && (
+                      <span className="ml-2 text-sm text-slate-500">&ldquo;{event.cta_text}&rdquo;</span>
+                    )}
+                    <p className="mt-0.5 text-xs text-slate-400">{session.page_path}</p>
+                  </div>
+                  <span className="shrink-0 text-xs text-slate-400">{formatDateTime(event.timestamp)}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
@@ -218,14 +345,20 @@ function SessionsTab({ sessions, visitorId, activeSessionId }: { sessions: Sessi
         <Link
           key={session.session_id}
           href={`/visitantes/${visitorId}?session=${session.session_id}&tab=sesiones`}
-          className={`bf-panel block p-3 ${session.session_id === activeSessionId ? "border-slate-900" : "border-slate-200"}`}
+          className={`bf-panel block p-3 transition hover:border-slate-300 ${
+            session.session_id === activeSessionId ? "border-slate-900" : "border-slate-200"
+          }`}
         >
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-slate-950" title={session.session_id}>Sesión {shortId(session.session_id)}</p>
+            <p className="font-semibold text-slate-950" title={session.session_id}>
+              Sesión {shortId(session.session_id)}
+            </p>
             <SourceBadge source={session.source} />
             <StatusBadge label={mainEventLabel(session)} />
           </div>
-          <p className="mt-2 text-sm text-slate-600">{formatDateTime(session.timestamp)} · {session.page_path} · {humanValue(session.service)}</p>
+          <p className="mt-2 text-sm text-slate-600">
+            {formatDateTime(session.timestamp)} · {session.page_path} · {humanValue(session.service)}
+          </p>
         </Link>
       ))}
     </div>
@@ -270,8 +403,10 @@ function TechnicalTab({ session }: { session: Session }) {
   return (
     <div className="space-y-4">
       <div className="bf-panel p-4">
-        <h2 className="text-lg font-semibold text-slate-950">Técnico / debug</h2>
-        <p className="mt-1 text-sm text-slate-500">Los nombres técnicos y payloads completos viven aquí para no dominar la experiencia principal.</p>
+        <h2 className="text-base font-semibold text-slate-950">Técnico / debug</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Nombres técnicos y payloads completos. No domina la experiencia principal.
+        </p>
       </div>
       <pre className="overflow-auto rounded-md border border-slate-200 bg-slate-950 p-4 text-xs leading-5 text-slate-100 shadow-sm">
         {JSON.stringify(session, null, 2)}
