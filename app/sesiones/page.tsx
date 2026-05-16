@@ -17,6 +17,11 @@ type PageProps = {
 
 const DEFAULT_LIMIT = 25;
 
+function parsePositiveInt(value: string, fallback: number): number {
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
 const filterChips = [
   { key: "todas", label: "Todas" },
   { key: "whatsapp", label: "WhatsApp click" },
@@ -230,8 +235,8 @@ export default async function SesionesPage({ searchParams }: PageProps) {
   const source = String(params.source || "");
   const event = String(params.event || "");
   const campaign = String(params.campaign || "").toLowerCase();
-  const page = Math.max(1, parseInt(String(params.page || "1"), 10));
-  const limit = Math.min(100, Math.max(5, parseInt(String(params.limit || String(DEFAULT_LIMIT)), 10)));
+  const page = parsePositiveInt(String(params.page || ""), 1);
+  const limit = Math.min(100, Math.max(5, parsePositiveInt(String(params.limit || ""), DEFAULT_LIMIT)));
 
   const p: TableParams = { filter, query, service, source, event, campaign, page, limit };
 
