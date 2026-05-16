@@ -130,6 +130,8 @@ export type SessionFilters = {
   eventName?: EventName;
   source?: Source;
   service?: ServiceKey;
+  medium?: string;
+  content?: string;
   hasRecording?: boolean;
   search?: string;
   limit?: number;

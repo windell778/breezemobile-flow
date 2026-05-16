@@ -43,6 +43,8 @@ type TableParams = {
   query: string;
   service: string;
   source: string;
+  medium: string;
+  content: string;
   event: string;
   campaign: string;
   page: number;
@@ -55,6 +57,8 @@ function buildPageHref(p: TableParams, newPage: number): string {
   if (p.query) q.set("q", p.query);
   if (p.service) q.set("service", p.service);
   if (p.source) q.set("source", p.source);
+  if (p.medium) q.set("medium", p.medium);
+  if (p.content) q.set("content", p.content);
   if (p.event) q.set("event", p.event);
   if (p.campaign) q.set("campaign", p.campaign);
   if (p.limit !== DEFAULT_LIMIT) q.set("limit", String(p.limit));
@@ -70,6 +74,8 @@ async function SessionsTable({ p }: { p: TableParams }) {
   else if (p.source) adapterFilters.source = p.source as Source;
 
   if (p.service) adapterFilters.service = p.service as ServiceKey;
+  if (p.medium) adapterFilters.medium = p.medium;
+  if (p.content) adapterFilters.content = p.content;
   if (p.query) adapterFilters.search = p.query;
   if (p.filter === "replay") adapterFilters.hasRecording = true;
   if (p.filter === "whatsapp") adapterFilters.eventName = "whatsapp_click";
@@ -233,12 +239,14 @@ export default async function SesionesPage({ searchParams }: PageProps) {
   const query = String(params.q || "").trim().toLowerCase();
   const service = String(params.service || "");
   const source = String(params.source || "");
+  const medium = String(params.medium || "");
+  const content = String(params.content || "");
   const event = String(params.event || "");
   const campaign = String(params.campaign || "").toLowerCase();
   const page = parsePositiveInt(String(params.page || ""), 1);
   const limit = Math.min(100, Math.max(5, parsePositiveInt(String(params.limit || ""), DEFAULT_LIMIT)));
 
-  const p: TableParams = { filter, query, service, source, event, campaign, page, limit };
+  const p: TableParams = { filter, query, service, source, medium, content, event, campaign, page, limit };
 
   return (
     <AppShell
@@ -273,6 +281,8 @@ export default async function SesionesPage({ searchParams }: PageProps) {
           ))}
           {service ? <ActiveChip label={`Servicio: ${humanValue(service)}`} href="/sesiones" /> : null}
           {source ? <ActiveChip label={`Fuente: ${source}`} href="/sesiones" /> : null}
+          {medium ? <ActiveChip label={`Medio: ${medium}`} href="/sesiones" /> : null}
+          {content ? <ActiveChip label={`Contenido: ${content}`} href="/sesiones" /> : null}
           {event ? <ActiveChip label={`Evento: ${humanValue(event)}`} href="/sesiones" /> : null}
           {campaign ? <ActiveChip label={`Campaña: ${campaign}`} href="/sesiones" /> : null}
         </div>

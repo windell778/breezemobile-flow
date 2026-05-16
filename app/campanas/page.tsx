@@ -91,7 +91,7 @@ async function AttributionTable({ dimension }: { dimension: Dimension }) {
             <span className="text-slate-600">
               {row.rate}%
               <Link
-                href={`/sesiones?q=${encodeURIComponent(row.label)}`}
+                href={buildSessionsHref(dimension, row)}
                 className="mt-1 block text-xs font-medium text-blue-700 hover:underline"
               >
                 Ver sesiones
@@ -229,4 +229,15 @@ function buildAttributionRows(sessions: Session[], dimension: Dimension): Attrib
   return Object.values(grouped)
     .map((row) => ({ ...row, rate: waRate(row.whatsappClicks, row.sessions) }))
     .sort((a, b) => b.whatsappClicks - a.whatsappClicks || b.sessions - a.sessions);
+}
+
+// Build correct /sesiones filter URL based on the active attribution dimension.
+// Each dimension maps to an explicit adapter-level filter so results are accurate.
+function buildSessionsHref(dimension: Dimension, row: AttributionRow): string {
+  const enc = encodeURIComponent;
+  if (dimension === "campaign") return `/sesiones?campaign=${enc(row.label)}`;
+  if (dimension === "source")   return `/sesiones?source=${enc(row.label)}`;
+  if (dimension === "medium")   return `/sesiones?medium=${enc(row.label)}`;
+  if (dimension === "content")  return `/sesiones?content=${enc(row.label)}`;
+  return `/sesiones?q=${enc(row.label)}`;
 }
