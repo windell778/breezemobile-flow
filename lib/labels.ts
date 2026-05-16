@@ -47,7 +47,7 @@ export function humanField(field: string) {
 export function humanValue(value: string | boolean | null | undefined) {
   if (value === true) return "Si";
   if (value === false) return "No";
-  if (value == null || value === "") return "n/a";
+  if (value == null || value === "") return "Sin dato";
   if (value in eventLabels) return eventLabels[value as EventName];
   if (value in serviceLabels) return serviceLabels[value as ServiceKey];
   if (value === "paid_social") return "Paid Social";

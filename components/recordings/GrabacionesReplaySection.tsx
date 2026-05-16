@@ -33,7 +33,7 @@ export function GrabacionesReplaySection({ activeSession, scopedSessions, servic
       <div className="space-y-4">
         <div className="overflow-hidden rounded-md border border-slate-800 bg-slate-950 text-white shadow-[0_1px_0_rgba(15,23,42,0.05)]">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 text-xs">
-            <p className="font-semibold">Replay interno</p>
+            <p className="font-semibold">Grabación</p>
             <p className="text-slate-400">{formatDateTime(activeSession.timestamp)}</p>
           </div>
           {hasRecording ? (
@@ -69,7 +69,7 @@ export function GrabacionesReplaySection({ activeSession, scopedSessions, servic
             <h2 className="text-base font-semibold text-white">Eventos</h2>
             <p className="mt-1 text-xs text-slate-400">
               {hasRecording
-                ? "Haz clic para saltar al momento aproximado en el replay."
+                ? "Haz clic para saltar a ese momento de la grabación."
                 : "Eventos registrados en esta sesión."}
             </p>
           </div>
@@ -103,7 +103,7 @@ export function GrabacionesReplaySection({ activeSession, scopedSessions, servic
                 </div>
                 <p className="mt-1 text-slate-600">{humanValue(session.service)} - {session.source}</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {session.recording?.status === "available" ? "Con replay" : "Sin replay"} · {session.events.length} eventos
+                  {session.recording?.status === "available" ? "Con grabación" : "Sin grabación"} · {session.events.length} eventos
                 </p>
               </Link>
             ))}
