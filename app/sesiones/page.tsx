@@ -24,12 +24,12 @@ function parsePositiveInt(value: string, fallback: number): number {
 
 const filterChips = [
   { key: "todas", label: "Todas" },
-  { key: "whatsapp", label: "WhatsApp click" },
-  { key: "service", label: "Service click" },
+  { key: "whatsapp", label: "Click a WhatsApp" },
+  { key: "service", label: "Click en servicio" },
   { key: "sin_interaccion", label: "Sin interacción" },
   { key: "meta", label: "Meta Ads" },
   { key: "direct", label: "Direct" },
-  { key: "replay", label: "Con replay" },
+  { key: "replay", label: "Con grabación" },
 ];
 
 const intentBorder: Record<string, string> = {
@@ -105,8 +105,8 @@ async function SessionsTable({ p }: { p: TableParams }) {
     <>
       <section className="grid gap-3 md:grid-cols-4">
         <MiniMetric label="Sesiones esta página" value={display.length} />
-        <MiniMetric label="WA clicks" value={whatsappCount} />
-        <MiniMetric label="Con replay" value={replayCount} />
+        <MiniMetric label="Clicks a WhatsApp" value={whatsappCount} />
+        <MiniMetric label="Con grabación" value={replayCount} />
         <MiniMetric label="Página" value={p.page} />
       </section>
 
@@ -192,7 +192,7 @@ function SessionRow({ session }: { session: Session }) {
               href={`/visitantes/${session.visitor_id}?session=${session.session_id}&tab=grabaciones`}
               className="pointer-events-auto relative z-20 rounded-md border border-blue-200 px-1.5 py-1 text-xs text-blue-700 hover:bg-blue-50"
             >
-              replay
+              Ver grabación
             </Link>
           )}
         </div>
@@ -243,7 +243,7 @@ export default async function SesionesPage({ searchParams }: PageProps) {
   return (
     <AppShell
       title="Sesiones"
-      description="Explorador de intención: cada sesión muestra fuente, servicio, evento principal y si hay replay disponible."
+      description="Revisa cada visita: de dónde vino, qué servicio vio, qué hizo y si hay grabación."
     >
       <section className="bf-panel p-3">
         <form className="grid gap-3 md:grid-cols-[1fr_auto]">

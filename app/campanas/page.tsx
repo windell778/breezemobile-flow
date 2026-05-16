@@ -68,9 +68,9 @@ async function AttributionTable({ dimension }: { dimension: Dimension }) {
         <span>Dimensión</span>
         <span>Fuente</span>
         <span>Sesiones</span>
-        <span>Service clicks</span>
-        <span>WA clicks</span>
-        <span>Tasa WA</span>
+        <span>Clicks en servicios</span>
+        <span>Clicks a WhatsApp</span>
+        <span>% WhatsApp</span>
         <span>Señal</span>
       </div>
       {rows.map((row) => {
@@ -114,9 +114,9 @@ function AttributionTableLoading() {
         <span>Dimensión</span>
         <span>Fuente</span>
         <span>Sesiones</span>
-        <span>Service clicks</span>
-        <span>WA clicks</span>
-        <span>Tasa WA</span>
+        <span>Clicks en servicios</span>
+        <span>Clicks a WhatsApp</span>
+        <span>% WhatsApp</span>
         <span>Señal</span>
       </div>
       {[...Array(5)].map((_, i) => (
@@ -143,7 +143,7 @@ export default async function CampanasPage({ searchParams }: PageProps) {
   return (
     <AppShell
       title="Campañas y fuentes"
-      description="Señal de intención por dimensión de atribución. El foco es comportamiento observable, no gasto ni revenue."
+      description="Compara campañas, fuentes y anuncios según las visitas y clicks que generan."
     >
       <section className="bf-panel p-3">
         <div className="flex flex-wrap gap-2">
@@ -171,7 +171,7 @@ export default async function CampanasPage({ searchParams }: PageProps) {
       </Suspense>
 
       <p className="mt-4 text-xs text-slate-400">
-        Señal de intención = whatsapp_click (evento anónimo, no lead confirmado).
+        Un click a WhatsApp muestra intención, pero todavía no confirma un lead calificado ni una venta.
       </p>
     </AppShell>
   );

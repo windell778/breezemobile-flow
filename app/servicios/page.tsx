@@ -13,7 +13,7 @@ export default async function ServiciosPage() {
   return (
     <AppShell
       title="Servicios"
-      description="Señal de intención por servicio: visitas, interés declarado y clicks en WhatsApp."
+      description="Compara qué servicios reciben más visitas, clicks internos y clicks a WhatsApp."
     >
       {servicePageSummaries.length === 0 ? (
         <EmptyState message="No hay datos de servicios disponibles." />
@@ -44,8 +44,8 @@ function ServiceCard({ page }: { page: ServicePageSummary }) {
         {/* Mini funnel: sessions → service clicks → WA clicks */}
         <div className="mt-3 space-y-1.5">
           <FunnelBar label="Sesiones" value={page.sessions} max={page.sessions} color="bg-slate-300" />
-          <FunnelBar label="Service clicks" value={page.service_clicks} max={page.sessions} color="bg-blue-400" />
-          <FunnelBar label="WA clicks" value={page.whatsapp_clicks} max={page.sessions} color="bg-emerald-500" />
+          <FunnelBar label="Clicks en servicios" value={page.service_clicks} max={page.sessions} color="bg-blue-400" />
+          <FunnelBar label="Clicks a WhatsApp" value={page.whatsapp_clicks} max={page.sessions} color="bg-emerald-500" />
         </div>
       </div>
 
@@ -53,14 +53,14 @@ function ServiceCard({ page }: { page: ServicePageSummary }) {
       <div className="p-4">
         <div className="grid grid-cols-2 gap-3">
           <Metric label="Sesiones" value={page.sessions} />
-          <Metric label="Page views" value={page.page_views} />
-          <Metric label="Service clicks" value={page.service_clicks} />
-          <Metric label="WA clicks" value={page.whatsapp_clicks} highlight />
+          <Metric label="Vistas de página" value={page.page_views} />
+          <Metric label="Clicks en servicios" value={page.service_clicks} />
+          <Metric label="Clicks a WhatsApp" value={page.whatsapp_clicks} highlight />
         </div>
 
         <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
           <span>Clicks totales: <span className="font-semibold text-slate-700">{totalSignal}</span></span>
-          <span>Tasa WA: <span className="font-semibold text-emerald-700">{conversionRate}%</span></span>
+          <span>% WhatsApp: <span className="font-semibold text-emerald-700">{conversionRate}%</span></span>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -74,7 +74,7 @@ function ServiceCard({ page }: { page: ServicePageSummary }) {
             href={`/grabaciones?service=${page.service}`}
             className="bf-control text-slate-700 hover:bg-slate-50"
           >
-            Ver replays
+            Ver grabaciones
           </Link>
         </div>
       </div>
