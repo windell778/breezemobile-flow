@@ -74,7 +74,7 @@ y revisar manualmente en PostHog.
 
 ---
 
-## 5b. Lo que NO existe todavía
+## 6. Lo que NO existe todavía
 
 - UTMs reales en datos — validar con una URL de campaña con parámetros
 - Autenticación
@@ -86,7 +86,7 @@ y revisar manualmente en PostHog.
 
 ---
 
-## 6. Flujo de navegación estable (2026-05-16)
+## 7. Flujo de navegación estable (2026-05-16)
 
 El flujo principal Dashboard → Campañas/Servicios/Eventos → Sesiones → Visitante → Grabaciones
 fue revisado y estabilizado. Comportamientos que deben mantenerse:
@@ -105,7 +105,7 @@ fue revisado y estabilizado. Comportamientos que deben mantenerse:
 
 ---
 
-## 7. Próximos pasos recomendados (en orden)
+## 8. Próximos pasos recomendados (en orden)
 
 1. **Pulir UX/UI** — las vistas tienen problemas de diseño que afectan la experiencia del usuario final.
 2. **Validar UTMs con tráfico real de campaña** — crear una URL con `?utm_source=facebook&utm_medium=paid_social&utm_campaign=nombre` y visitar la web. Confirmar que los campos llegan a PostHog.
@@ -114,7 +114,7 @@ fue revisado y estabilizado. Comportamientos que deben mantenerse:
 
 ---
 
-## 7. Cómo activar datos reales (resumen)
+## 9. Cómo activar datos reales (resumen)
 
 ```bash
 # .env.local debe contener:
@@ -134,7 +134,7 @@ El archivo `.env.local` está en `.gitignore` — nunca se commitea.
 
 ---
 
-## 8. Datos reales observados (2026-05-14)
+## 10. Datos reales observados (2026-05-14)
 
 - 28 eventos `page_view_custom`
 - 8 eventos `service_click`
