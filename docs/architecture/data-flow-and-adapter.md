@@ -421,7 +421,7 @@ a `EventFilters` y se usan en `listEventsHogQL` (no en `listSessionsHogQL`).
 | Filtro `SessionFilters` | PostHogAdapter | Por qué |
 |---|---|---|
 | `source` | Memoria (post-fetch) | La fuente se infiere de UTMs; no hay columna directa |
-| `service` | Memoria (post-fetch) | ídem, inferida de eventos |
+| `service` | Memoria (post-fetch) | Semántica ampliada: incluye sesiones cuyo `session.service` coincide **o** cuyo `events[].service` coincide. Necesario para consistencia con `getServiceSummaries()`, que agrega por evento. |
 | `search` | Memoria (post-fetch) | Texto libre — no bajar a SQL para evitar HogQL injection |
 | `hasRecording` | Memoria (post-fetch) | Depende de `fetchRecordingsMap` (REST, no HogQL) |
 | `eventName` | Memoria (post-fetch) | Si se bajara a SQL rompería el agrupamiento de sesiones* |

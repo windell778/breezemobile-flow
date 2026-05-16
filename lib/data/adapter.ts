@@ -156,7 +156,11 @@ class MockAdapter implements DataAdapter {
       }
     }
     if (filters?.service) {
-      result = result.filter((s) => s.service === filters.service);
+      result = result.filter(
+        (s) =>
+          s.service === filters.service ||
+          s.events.some((e) => e.service === filters.service),
+      );
     }
     if (filters?.hasRecording !== undefined) {
       result = result.filter(
