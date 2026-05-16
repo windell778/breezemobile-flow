@@ -126,7 +126,7 @@ async function SessionsTable({ p }: { p: TableParams }) {
           <span>Actividad</span>
         </div>
         {display.map((session) => (
-          <SessionRow key={session.session_id} session={session} />
+          <SessionRow key={session.session_id} session={session} serviceFilter={p.service} />
         ))}
 
         {/* Pagination controls inside the panel */}
@@ -157,8 +157,12 @@ async function SessionsTable({ p }: { p: TableParams }) {
   );
 }
 
-function SessionRow({ session }: { session: Session }) {
+function SessionRow({ session, serviceFilter }: { session: Session; serviceFilter?: string }) {
   const hasRecording = session.recording?.status === "available";
+  const includesFilteredService =
+    serviceFilter &&
+    session.service !== serviceFilter &&
+    session.events.some((e) => e.service === serviceFilter);
   return (
     <article
       className={`bf-row relative border-l-2 xl:grid xl:grid-cols-[150px_180px_1.1fr_1fr_1fr_130px] xl:items-center ${
@@ -182,6 +186,9 @@ function SessionRow({ session }: { session: Session }) {
         <div>
           <p className="font-mono font-medium text-slate-950">{shortId(session.visitor_id)}</p>
           <p className="mt-1 text-slate-600">{humanValue(session.service)} · {session.page_path}</p>
+          {includesFilteredService && (
+            <p className="mt-1 text-xs text-amber-600">Incluye eventos de {humanValue(serviceFilter)}</p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <SourceBadge source={session.source} />
