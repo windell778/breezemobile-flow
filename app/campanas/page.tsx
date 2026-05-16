@@ -30,6 +30,10 @@ function signalLabel(waClicks: number, sessions: number): { label: string; cls: 
 }
 
 async function AttributionTable({ dimension }: { dimension: Dimension }) {
+  // V0: aggregates built in-memory from all sessions.
+  // TODO: replace with adapter-level HogQL aggregate queries per dimension
+  // (getCampaignSummaries already exists for "campaign"; source/medium/content
+  // need dedicated queries to avoid loading all sessions when data grows).
   const sessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID);
   const rows = buildAttributionRows(sessions, dimension);
 
@@ -142,7 +146,7 @@ export default async function CampanasPage({ searchParams }: PageProps) {
       </Suspense>
 
       <p className="mt-4 text-xs text-slate-400">
-        Señal de intención = whatsapp_click · Costo por sesión y ROAS se agregarán cuando se conecte Meta Ads API.
+        Señal de intención = whatsapp_click (evento anónimo, no lead confirmado).
       </p>
     </AppShell>
   );

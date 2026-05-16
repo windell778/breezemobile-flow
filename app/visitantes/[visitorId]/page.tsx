@@ -46,7 +46,9 @@ export default async function VisitorPage({ params, searchParams }: PageProps) {
   const activeSession = visitorSessions.find((s) => s.session_id === selectedSessionId) || visitorSessions.at(-1);
   if (!activeSession) notFound();
 
-  const activeTab = String(query.tab || "resumen");
+  const knownTabs = tabs.map(([key]) => key);
+  const rawTab = String(query.tab || "resumen");
+  const activeTab = knownTabs.includes(rawTab) ? rawTab : "resumen";
   const summary = buildVisitorSummary(visitorSessions);
 
   // KPIs computed from sessions
