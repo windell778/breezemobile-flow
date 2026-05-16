@@ -301,7 +301,96 @@ se pasen al player.
 
 ---
 
-## 11. Qué no tocar sin revisar este documento
+## 11. Alineación de timestamps: eventos PostHog vs grabación rrweb
+
+Este punto es crítico para cualquier feature que intente conectar eventos
+de PostHog (page_view_custom, service_click, whatsapp_click) con momentos
+dentro del replay.
+
+### Dos relojes distintos
+
+| Fuente | Timestamp | Referencia |
+|---|---|---|
+| Evento PostHog | `event.timestamp` — UTC epoch ms | Generado en el browser con `Date.now()`, enviado al servidor, almacenado con posible delay de red |
+| Evento rrweb | `rrweb_event.timestamp` — UTC epoch ms | Generado en el browser con `Date.now()` en el momento exacto del snapshot DOM |
+
+Ambos vienen del mismo browser, pero **no están sincronizados garantizadamente**:
+
+- PostHog puede tener delay por batching, reintentos o cola interna.
+- rrweb captura cada mutación DOM en tiempo real; PostHog captura eventos de negocio.
+- En sesiones con lag de red, un evento PostHog puede llegar al servidor con
+  segundos de retraso respecto al momento real.
+
+### Cómo se calcula el offset en ReplayTimeline
+
+```typescript
+// components/recordings/ReplayTimeline.tsx
+function secondsOffset(start: string, ts: string): number {
+  return Math.max(0, (new Date(ts).getTime() - new Date(start).getTime()) / 1000);
+}
+```
+
+`start` = `session.timestamp` = timestamp del primer evento PostHog de la sesión.  
+`ts` = timestamp del evento individual PostHog.
+
+Este cálculo da el offset del evento **dentro de la sesión PostHog**, no
+dentro de la grabación rrweb. Si la grabación empezó algunos segundos antes
+o después que el primer evento PostHog, el offset será inexacto.
+
+### Magnitud esperada del desfase
+
+En condiciones normales: **< 2 segundos**. Suficientemente preciso para
+navegar al momento aproximado del evento en el replay.
+
+En condiciones adversas (red lenta, tab en background, reintentos):
+**hasta 10–30 segundos**. En estos casos el offset puede apuntar a un
+momento equivocado del replay.
+
+### Reglas para features que usen timestamps
+
+1. **Usar el offset como aproximación, nunca como posición exacta.**
+   Al hacer seek en el player, aplicar un margen de seguridad (ej. `- 2s`)
+   para que el usuario vea el contexto antes del evento.
+
+2. **No asumir que `offset > duration` implica un error.** Un evento
+   PostHog puede tener timestamp posterior al último evento rrweb si el
+   usuario interactuó después de que la grabación terminara de capturar
+   (PostHog tiene TTL de sesión diferente al de rrweb).
+
+3. **No asumir que `offset < 0` implica un error.** Puede ocurrir si el
+   primer evento rrweb tiene timestamp anterior al primer evento PostHog
+   (la grabación empezó antes de que el primer evento de negocio se enviara).
+   `Math.max(0, ...)` en `secondsOffset()` ya protege contra esto.
+
+4. **El offset negativo es silencioso.** `secondsOffset()` retorna `0` —
+   el evento se muestra al inicio del timeline aunque no sea su posición
+   real. Esto es correcto para la UI pero debe documentarse si se usa para
+   seek automático.
+
+5. **No sincronizar relojes entre PostHog y rrweb.** No existe una API
+   que mapee exactamente evento PostHog → frame rrweb. El offset calculado
+   es la mejor aproximación disponible sin instrumentación adicional.
+
+### Implicaciones para el player
+
+Si se implementa click-to-seek (saltar al momento del evento en el replay),
+el código debe:
+
+```typescript
+// Offset en ms desde inicio de sesión PostHog
+const offsetMs = (new Date(event.timestamp).getTime() - new Date(sessionStartedAt).getTime());
+// Aplicar margen para mostrar contexto previo
+const seekMs = Math.max(0, offsetMs - 2000);
+// Llamar al método de seek del player rrweb-player
+player.$set({ currentTime: seekMs });
+```
+
+La experiencia debe dejar claro en la UI que el player salta a "aproximadamente"
+el momento del evento, no al frame exacto.
+
+---
+
+## 12. Qué no tocar sin revisar este documento
 
 | Qué | Por qué |
 |---|---|
