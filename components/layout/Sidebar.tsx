@@ -38,7 +38,7 @@ export function Sidebar() {
           </div>
           <p className="mt-1 text-[11px] leading-4 text-slate-400">
             {isPostHog ? "Datos reales vía PostHog API." : "Mock compatible con PostHog API."}{" "}
-            GTM valida el contrato.
+            GTM/dataLayer valida el contrato.
           </p>
         </div>
       </div>

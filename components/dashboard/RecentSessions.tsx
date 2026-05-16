@@ -28,7 +28,7 @@ export function RecentSessions({ sessions }: RecentSessionsProps) {
         {sessions.map((session) => (
           <Link
             key={session.session_id}
-            href={`/grabaciones?session=${session.session_id}`}
+            href={`/visitantes/${session.visitor_id}?session=${session.session_id}`}
             className={`block border-l-2 px-4 py-3 transition hover:bg-slate-50 ${
               intentBg[session.intent_level] ?? "border-l-slate-200"
             }`}
@@ -46,7 +46,13 @@ export function RecentSessions({ sessions }: RecentSessionsProps) {
                 <SourceBadge source={session.source} />
                 <StatusBadge label={`${session.intent_level} intención`} />
                 {session.recording?.status === "available" && (
-                  <StatusBadge label="Replay" />
+                  <Link
+                    href={`/grabaciones?session=${session.session_id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bf-chip border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  >
+                    Replay
+                  </Link>
                 )}
               </div>
             </div>
