@@ -1,8 +1,12 @@
 "use client";
 
 import "rrweb-player/dist/style.css";
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { eventWithTime } from "@rrweb/types";
+
+export type RRWebPlayerHandle = {
+  seekTo: (ms: number) => void;
+};
 
 type Props = {
   recordingId: string;
@@ -10,13 +14,26 @@ type Props = {
 
 const CONTROLLER_HEIGHT = 80;
 
-export function RRWebPlayer({ recordingId }: Props) {
+export const RRWebPlayer = forwardRef<RRWebPlayerHandle, Props>(function RRWebPlayer(
+  { recordingId },
+  ref,
+) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const playerInstanceRef = useRef<any>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
   // 0 = not yet measured by ResizeObserver; player init waits for a real value
   const [playerWidth, setPlayerWidth] = useState(0);
+
+  useImperativeHandle(ref, () => ({
+    // goto(ms) is the rrweb-player seek API (exposed by the Svelte component).
+    // Apply a 2s safety margin at the call site so users see context before the event.
+    seekTo(ms: number) {
+      playerInstanceRef.current?.goto(ms);
+    },
+  }));
 
   useEffect(() => {
     const el = wrapperRef.current;
@@ -36,8 +53,6 @@ export function RRWebPlayer({ recordingId }: Props) {
     const h = Math.floor(w * 9 / 16);
 
     let destroyed = false;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let playerInstance: any = null;
 
     async function init() {
       try {
@@ -64,7 +79,7 @@ export function RRWebPlayer({ recordingId }: Props) {
         if (!containerRef.current) return;
         containerRef.current.innerHTML = "";
 
-        playerInstance = new rrwebPlayer({
+        playerInstanceRef.current = new rrwebPlayer({
           target: containerRef.current,
           props: { events, width: w, height: h, autoPlay: true, showController: true },
         });
@@ -82,7 +97,8 @@ export function RRWebPlayer({ recordingId }: Props) {
 
     return () => {
       destroyed = true;
-      playerInstance?.pause?.();
+      playerInstanceRef.current?.pause?.();
+      playerInstanceRef.current = null;
     };
   }, [recordingId, playerWidth]);
 
@@ -110,4 +126,5 @@ export function RRWebPlayer({ recordingId }: Props) {
       />
     </div>
   );
-}
+});
+
