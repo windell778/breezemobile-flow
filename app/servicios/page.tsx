@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
 import { humanValue } from "@/lib/labels";
 import type { ServicePageSummary } from "@/lib/data/types";
@@ -14,11 +15,15 @@ export default async function ServiciosPage() {
       title="Servicios"
       description="Señal de intención por servicio: visitas, interés declarado y clicks en WhatsApp."
     >
-      <section className="bf-defer grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {servicePageSummaries.map((page) => (
-          <ServiceCard key={page.path} page={page} />
-        ))}
-      </section>
+      {servicePageSummaries.length === 0 ? (
+        <EmptyState message="No hay datos de servicios disponibles." />
+      ) : (
+        <section className="bf-defer grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {servicePageSummaries.map((page) => (
+            <ServiceCard key={page.path} page={page} />
+          ))}
+        </section>
+      )}
     </AppShell>
   );
 }
