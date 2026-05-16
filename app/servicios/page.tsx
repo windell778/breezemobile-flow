@@ -54,7 +54,7 @@ function ServiceCard({ page }: { page: ServicePageSummary }) {
         </div>
 
         <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-          <span>Señal total: <span className="font-semibold text-slate-700">{totalSignal} clicks</span></span>
+          <span>Clicks totales: <span className="font-semibold text-slate-700">{totalSignal}</span></span>
           <span>Tasa WA: <span className="font-semibold text-emerald-700">{conversionRate}%</span></span>
         </div>
 
@@ -78,7 +78,9 @@ function ServiceCard({ page }: { page: ServicePageSummary }) {
 }
 
 function FunnelBar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
-  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  // Capped at 100%: service_clicks / whatsapp_clicks can exceed session count
+  // because a single session may contain multiple clicks.
+  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
     <div className="flex items-center gap-2">
       <span className="w-24 shrink-0 text-[11px] text-slate-500">{label}</span>

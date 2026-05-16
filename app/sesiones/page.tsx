@@ -54,6 +54,9 @@ async function SessionsTable({ p }: { p: TableParams }) {
   else if (p.filter === "service") adapterFilters.eventName = "service_click";
   if (p.event) adapterFilters.eventName = p.event as EventName;
 
+  // V0: no pagination. Adapter-level filters are pushed to PostHog HogQL when
+  // DATA_SOURCE=posthog. JS post-filtering below only handles cases the adapter
+  // doesn't model yet. Add limit/offset when sessions regularly exceed ~500.
   const allSessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID, adapterFilters);
 
   const visible = allSessions.filter((session) => {
