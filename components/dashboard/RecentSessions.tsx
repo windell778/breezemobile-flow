@@ -9,7 +9,7 @@ type RecentSessionsProps = {
   sessions: Session[];
 };
 
-const intentBg: Record<string, string> = {
+const intentBorder: Record<string, string> = {
   Alta: "border-l-emerald-500",
   Media: "border-l-amber-400",
   Baja: "border-l-slate-300",
@@ -26,29 +26,34 @@ export function RecentSessions({ sessions }: RecentSessionsProps) {
       </div>
       <div className="divide-y divide-slate-100">
         {sessions.map((session) => (
-          <Link
+          <article
             key={session.session_id}
-            href={`/visitantes/${session.visitor_id}?session=${session.session_id}`}
-            className={`block border-l-2 px-4 py-3 transition hover:bg-slate-50 ${
-              intentBg[session.intent_level] ?? "border-l-slate-200"
-            }`}
+            className={`border-l-2 px-4 py-3 ${intentBorder[session.intent_level] ?? "border-l-slate-200"}`}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-semibold text-slate-500" title={session.session_id}>
+              {/* Primary link → Visitor Intelligence */}
+              <Link
+                href={`/visitantes/${session.visitor_id}?session=${session.session_id}`}
+                className="flex items-center gap-2 hover:underline"
+              >
+                <span
+                  className="font-mono text-xs font-semibold text-slate-500"
+                  title={session.session_id}
+                >
                   {shortId(session.session_id)}
                 </span>
                 <span className="text-sm font-medium text-slate-950">
                   {humanValue(session.service)}
                 </span>
-              </div>
+              </Link>
+
+              {/* Badges + optional replay link */}
               <div className="flex items-center gap-1.5">
                 <SourceBadge source={session.source} />
                 <StatusBadge label={`${session.intent_level} intención`} />
                 {session.recording?.status === "available" && (
                   <Link
                     href={`/grabaciones?session=${session.session_id}`}
-                    onClick={(e) => e.stopPropagation()}
                     className="bf-chip border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                   >
                     Replay
@@ -56,15 +61,19 @@ export function RecentSessions({ sessions }: RecentSessionsProps) {
                 )}
               </div>
             </div>
+
             <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
               {session.attribution.utm_campaign && (
-                <span>Campaña: <span className="text-slate-700">{session.attribution.utm_campaign}</span></span>
+                <span>
+                  Campaña:{" "}
+                  <span className="text-slate-700">{session.attribution.utm_campaign}</span>
+                </span>
               )}
               <span>{session.page_path}</span>
               <span>{mainEventLabel(session)}</span>
               <span>{formatDateTime(session.timestamp)}</span>
             </div>
-          </Link>
+          </article>
         ))}
       </div>
     </div>
