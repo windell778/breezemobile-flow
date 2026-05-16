@@ -292,5 +292,5 @@ El encabezado (siempre visible) muestra: `shortId(visitor_id)`, intent máximo, 
 | `source` | Inferido de `utm_medium` / `utm_source` | Inferencia — no es un campo directo de PostHog |
 | `intent_level` | Inferido de eventos: `whatsapp_click`=Alta, `service_click`=Media, else=Baja | Inferencia — no viene de PostHog |
 | `duration` | PostHog Sessions API | Null en datos reales actuales (no disponible en Events API) |
-| `recording.status` | PostHog Recordings API cruzado con webhook | Real cuando el webhook llega; puede estar desactualizado si el webhook falla |
+| `recording.status` | PostHog Recordings API cruzada con `person.properties.session_id` | Real cuando PostHog lista la grabación; puede faltar si la grabación aún no está disponible o si la API no devuelve `session_id` |
 | `service` de la sesión | Primer evento `page_view_custom` con `service` en payload | Real si el tracking lo captura; puede ser "general" por defecto |
