@@ -12,7 +12,7 @@ export function mainEvent(session: Session): EventName {
 
 export function mainEventLabel(session: Session) {
   const eventName = mainEvent(session);
-  if (eventName === "page_view_custom" && session.events.length === 1) return "Sin interaccion";
+  if (eventName === "page_view_custom" && session.events.length === 1) return "Sin interacción";
   return eventLabels[eventName];
 }
 
@@ -39,7 +39,7 @@ export function buildVisitorSummary(visitorSessions: Session[]) {
     firstSource: first?.source || "Direct",
     lastSource: last?.source || "Direct",
     lastEvent: last ? mainEvent(last) : "page_view_custom",
-    state: hasHighIntent ? "Alta intencion" : hasService ? "Media intencion" : "Sin interaccion",
+    state: hasHighIntent ? "Alta intención" : hasService ? "Media intención" : "Sin interacción",
   };
 }
 

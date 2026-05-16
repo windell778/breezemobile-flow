@@ -46,7 +46,7 @@ export default async function Home() {
         </Link>
         <Link href="/eventos?event=service_click" className="block transition hover:-translate-y-0.5">
           <MetricCard
-            label="Service clicks"
+            label="Clicks en servicios"
             value={metrics.serviceClicks}
             detail="Interés declarado por servicio."
           />
