@@ -26,7 +26,7 @@ export default async function Home() {
   return (
     <AppShell
       title="Command Center"
-      description="Comportamiento, atribución e intención de visitantes anónimos en tiempo real."
+      description="Comportamiento, atribución e intención de visitantes anónimos con datos operativos recientes."
     >
       {/* KPIs */}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
