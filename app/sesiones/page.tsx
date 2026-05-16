@@ -282,7 +282,7 @@ export default async function SesionesPage({ searchParams }: PageProps) {
           {service ? <ActiveChip label={`Servicio: ${humanValue(service)}`} href="/sesiones" /> : null}
           {source ? <ActiveChip label={`Fuente: ${source}`} href="/sesiones" /> : null}
           {medium ? <ActiveChip label={`Medio: ${medium}`} href="/sesiones" /> : null}
-          {content ? <ActiveChip label={`Contenido: ${content}`} href="/sesiones" /> : null}
+          {content ? <ActiveChip label={`Contenido: ${content === "__missing__" ? "Sin anuncio" : content}`} href="/sesiones" /> : null}
           {event ? <ActiveChip label={`Evento: ${humanValue(event)}`} href="/sesiones" /> : null}
           {campaign ? <ActiveChip label={`Campaña: ${campaign}`} href="/sesiones" /> : null}
         </div>

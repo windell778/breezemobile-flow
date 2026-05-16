@@ -317,12 +317,16 @@ export async function listSessionsHogQL(
     sessions = sessions.filter((s) => (s.attribution.utm_medium.toLowerCase() || "none") === m);
   }
   if (filters?.content) {
-    const c = filters.content.toLowerCase();
-    sessions = sessions.filter(
-      (s) =>
-        s.attribution.utm_content.toLowerCase() === c ||
-        s.attribution.ad_id.toLowerCase() === c,
-    );
+    if (filters.content === "__missing__") {
+      sessions = sessions.filter((s) => !s.attribution.utm_content && !s.attribution.ad_id);
+    } else {
+      const c = filters.content.toLowerCase();
+      sessions = sessions.filter(
+        (s) =>
+          s.attribution.utm_content.toLowerCase() === c ||
+          s.attribution.ad_id.toLowerCase() === c,
+      );
+    }
   }
   if (filters?.service) {
     sessions = sessions.filter((s) => s.service === filters.service);

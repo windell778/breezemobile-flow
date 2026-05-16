@@ -238,6 +238,11 @@ function buildSessionsHref(dimension: Dimension, row: AttributionRow): string {
   if (dimension === "campaign") return `/sesiones?campaign=${enc(row.label)}`;
   if (dimension === "source")   return `/sesiones?source=${enc(row.label)}`;
   if (dimension === "medium")   return `/sesiones?medium=${enc(row.label)}`;
-  if (dimension === "content")  return `/sesiones?content=${enc(row.label)}`;
+  // "Sin anuncio" means both utm_content and ad_id are empty; use sentinel so
+  // the adapter can match on empty fields rather than the human-readable label.
+  if (dimension === "content") {
+    const val = row.label === "Sin anuncio" ? "__missing__" : row.label;
+    return `/sesiones?content=${enc(val)}`;
+  }
   return `/sesiones?q=${enc(row.label)}`;
 }
