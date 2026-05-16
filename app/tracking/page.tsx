@@ -33,7 +33,7 @@ export default async function TrackingPage() {
 
   return (
     <AppShell
-      title="Tracking Health"
+      title="Estado del tracking"
       description="Revisa si los eventos, campañas y grabaciones están llegando correctamente."
     >
       {sorted.length === 0 ? (

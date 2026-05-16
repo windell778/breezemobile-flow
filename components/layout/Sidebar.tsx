@@ -25,7 +25,7 @@ export function Sidebar() {
       <div className="shrink-0 border-t border-slate-200 p-3">
         <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold text-slate-700">Fuente V0</p>
+            <p className="text-xs font-semibold text-slate-700">Fuente de datos</p>
             <span
               className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                 isPostHog
@@ -37,8 +37,8 @@ export function Sidebar() {
             </span>
           </div>
           <p className="mt-1 text-[11px] leading-4 text-slate-400">
-            {isPostHog ? "Datos reales vía PostHog API." : "Mock compatible con PostHog API."}{" "}
-            GTM/dataLayer valida el contrato.
+            {isPostHog ? "Datos reales desde PostHog." : "Datos simulados, misma estructura."}{" "}
+            Tracking validado con GTM/dataLayer.
           </p>
         </div>
       </div>
