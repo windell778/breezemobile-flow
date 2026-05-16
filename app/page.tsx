@@ -25,7 +25,7 @@ export default async function Home() {
 
   return (
     <AppShell
-      title="Command Center"
+      title="Resumen general"
       description="Comportamiento, atribución e intención de visitantes anónimos con datos operativos recientes."
     >
       {/* KPIs */}
@@ -39,7 +39,7 @@ export default async function Home() {
         </Link>
         <Link href="/eventos?event=whatsapp_click" className="block transition hover:-translate-y-0.5">
           <MetricCard
-            label="WhatsApp clicks"
+            label="Clicks a WhatsApp"
             value={metrics.whatsappClicks}
             detail="Señal de alta intención (anónima)."
           />
@@ -53,7 +53,7 @@ export default async function Home() {
         </Link>
         <Link href="/grabaciones" className="block transition hover:-translate-y-0.5">
           <MetricCard
-            label="Replay disponible"
+            label="Con grabación"
             value={`${metrics.replayRate}%`}
             detail={`${metrics.recordings} sesiones con grabación.`}
           />
@@ -118,7 +118,7 @@ export default async function Home() {
           <div className="mt-3 space-y-2 text-sm">
             {metrics.topCampaign ? (
               <Link
-                href={`/sesiones?q=${encodeURIComponent(metrics.topCampaign.name)}`}
+                href={`/sesiones?campaign=${encodeURIComponent(metrics.topCampaign.name)}`}
                 className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2.5 hover:bg-slate-50"
               >
                 <div>
@@ -168,7 +168,7 @@ export default async function Home() {
 
         <div className="bf-panel overflow-hidden">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-            <h2 className="text-base font-semibold text-slate-950">Tracking Health</h2>
+            <h2 className="text-base font-semibold text-slate-950">Estado del tracking</h2>
             <Link href="/tracking" className="text-xs font-medium text-slate-500 hover:text-slate-900">
               Ver todo →
             </Link>
@@ -214,7 +214,7 @@ async function CampaignsSection({ workspaceId }: { workspaceId: string }) {
         {campaigns.slice(0, 4).map((campaign) => (
           <Link
             key={`${campaign.source}-${campaign.name}`}
-            href={`/sesiones?q=${encodeURIComponent(campaign.name)}`}
+            href={`/sesiones?campaign=${encodeURIComponent(campaign.name)}`}
             className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-slate-50"
           >
             <div className="min-w-0">

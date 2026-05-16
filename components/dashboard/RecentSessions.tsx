@@ -63,7 +63,7 @@ export function RecentSessions({ sessions }: RecentSessionsProps) {
                       href={`/grabaciones?session=${session.session_id}`}
                       className="relative z-20 pointer-events-auto bf-chip border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                     >
-                      Replay
+                      Ver grabación
                     </Link>
                   )}
                 </div>
