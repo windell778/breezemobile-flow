@@ -6,6 +6,13 @@ import { eventLabels, serviceLabels } from "@/lib/labels";
 type Props = {
   events: TrackingEvent[];
   sessionStartedAt: string;
+  /**
+   * When provided, each event row becomes clickable.
+   * Called with the approximate offset in ms from session start.
+   * Caller is responsible for applying the 2s safety margin before seeking
+   * (see docs/architecture/recordings.md §11 — timestamp alignment caveats).
+   */
+  onSeek?: (offsetMs: number) => void;
 };
 
 const eventColors: Record<string, string> = {
@@ -30,7 +37,7 @@ function formatOffset(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export function ReplayTimeline({ events, sessionStartedAt }: Props) {
+export function ReplayTimeline({ events, sessionStartedAt, onSeek }: Props) {
   if (!events.length) {
     return (
       <p className="text-sm text-zinc-500">Sin eventos registrados para esta sesión.</p>
@@ -38,14 +45,15 @@ export function ReplayTimeline({ events, sessionStartedAt }: Props) {
   }
 
   return (
-    <ol className="flex flex-col gap-3">
+    <ol className="flex flex-col gap-1">
       {events.map((event, idx) => {
         const offset = secondsOffset(sessionStartedAt, event.timestamp);
+        const offsetMs = offset * 1000;
         const color = eventColors[event.event_name] ?? "bg-zinc-500";
         const ring = eventDot[event.event_name] ?? "ring-zinc-500/30";
 
-        return (
-          <li key={event.event_id || idx} className="flex items-start gap-3">
+        const inner = (
+          <>
             {/* Time marker */}
             <span className="w-10 shrink-0 pt-0.5 text-right text-xs tabular-nums text-zinc-500">
               {formatOffset(offset)}
@@ -70,6 +78,27 @@ export function ReplayTimeline({ events, sessionStartedAt }: Props) {
                 </span>
               )}
             </div>
+          </>
+        );
+
+        // 2s safety margin so the player shows context before the event fires.
+        // See docs/architecture/recordings.md §11 for timestamp alignment caveats.
+        const seekMs = Math.max(0, offsetMs - 2000);
+
+        return onSeek ? (
+          <li key={event.event_id || idx}>
+            <button
+              type="button"
+              onClick={() => onSeek(seekMs)}
+              className="flex w-full items-start gap-3 rounded-md px-2 py-1.5 text-left hover:bg-white/5 active:bg-white/10"
+              title="Saltar al replay en este momento (aproximado)"
+            >
+              {inner}
+            </button>
+          </li>
+        ) : (
+          <li key={event.event_id || idx} className="flex items-start gap-3 px-2 py-1.5">
+            {inner}
           </li>
         );
       })}
