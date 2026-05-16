@@ -21,6 +21,12 @@ Ese documento es la fuente de verdad para:
 - Compresión gzip latin1 (NO base64)
 - Aislamiento por `window_id` — cada Replayer es independiente
 - Modos de fallo que rompen el player
+- Alineación de timestamps PostHog vs rrweb (§11) — leer antes de cualquier
+  feature de seek o timeline que use timestamps de eventos
+
+Si la tarea toca replay privacy, masking, `data-ph-mask`, `data-ph-no-capture`,
+`data-ph-unmask`, o PostHog Session Replay config, leer también:
+**`docs/tracking/replay-privacy.md`**
 
 ## Arquitectura del player
 
