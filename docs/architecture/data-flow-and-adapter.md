@@ -728,3 +728,109 @@ En todas las páginas que muestran IDs en tablas o encabezados:
 `shortId` es solo display. El ID completo (`session.session_id`,
 `session.visitor_id`) debe usarse para todas las URLs, queries, y lógica.
 Nunca almacenar ni comparar `shortId` — es presentacional.
+
+---
+
+## 15. Semántica de navegación estable — comportamientos que no deben simplificarse
+
+Esta sección documenta comportamientos específicos de filtrado y UI que existen por razones
+de consistencia entre capas. No simplificarlos sin leer esto primero.
+
+### 15.1 Filtro `service` — semántica ampliada (sesiones y grabaciones)
+
+El filtro `service` en `/sesiones?service=X` y `/grabaciones?service=X` **no significa**
+"sesiones cuyo campo `session.service` es X".
+
+**Semántica correcta:**
+
+```
+sesión coincide si:
+  session.service === service
+  OR session.events.some(e => e.service === service)
+```
+
+**Por qué:**
+`/servicios` usa `getServiceSummaries()`, que agrega por `event.service` (nivel de evento),
+no solo por `session.service` (nivel de sesión). Si el filtro de sesiones mirara únicamente
+`session.service`, los conteos de `/servicios` y la lista de `/sesiones?service=X`
+serían inconsistentes: `/servicios` mostraría N sesiones para un servicio, pero al navegar
+a sesiones filtradas aparecerían menos.
+
+⚠️ **No simplificar** este filtro a `s.service === filters.service`. Rompería la consistencia
+entre la vista de servicios y las vistas de sesiones/grabaciones. El filtro expandido está
+implementado en `MockAdapter.listSessions` y `listSessionsHogQL` (post-fetch en ambos casos).
+
+### 15.2 Comportamiento de `/grabaciones?service=X`
+
+- Usa la misma semántica ampliada que `/sesiones?service=X` (ver §15.1).
+- Si no hay sesiones en el scope del servicio: muestra `EmptyState`, no una sesión de otro servicio.
+- Si hay sesiones pero ninguna tiene grabación: muestra "Sin grabación disponible" en el player.
+- **No debe caer a sesiones de otro servicio** como fallback. El fallback global (`allSessions[0]` sin filtro) fue eliminado deliberadamente.
+
+### 15.3 Nota visual "Incluye eventos de {servicio}"
+
+Cuando una sesión entra al filtro por `events[].service` (no por `session.service`),
+la UI muestra una nota ámbar: `"Incluye eventos de {humanValue(service)}"`.
+
+**Esta nota no es un error** — es la explicación visual de la semántica ampliada del filtro.
+Aparece en:
+
+- `/sesiones?service=X` — debajo del bloque "Visitante / servicio" en cada fila afectada (`app/sesiones/page.tsx → SessionRow`).
+- `/grabaciones?service=X` — en la barra de info del player activo y en las tarjetas de la lista de sesiones (`components/recordings/GrabacionesReplaySection.tsx`).
+
+Condición exacta:
+
+```typescript
+service && session.service !== service && session.events.some(e => e.service === service)
+```
+
+No mostrar la nota cuando `session.service === service` (la sesión coincide directamente).
+
+### 15.4 Badge "Coincide con filtro" en el timeline de grabaciones
+
+En el timeline de eventos de `/grabaciones?service=X`, los eventos cuyo `event.service === service`
+muestran un badge ámbar: `"Coincide con filtro"` (`components/recordings/ReplayTimeline.tsx`, prop `serviceFilter`).
+
+Esto ayuda a entender por qué una sesión cuyo servicio principal es distinto aparece en ese
+contexto de filtro. El badge solo aparece cuando hay filtro `service` activo y `event.service`
+coincide exactamente.
+
+### 15.5 Sentinel `__missing__` para "Sin anuncio"
+
+En `/campanas?dimension=content`, la fila "Sin anuncio" representa sesiones sin `utm_content`
+ni `ad_id`. Estos campos están vacíos — no contienen el texto "Sin anuncio".
+
+**Problema:** si el label humano se envía como valor del filtro (`?content=Sin%20anuncio`),
+el adapter busca `utm_content === "Sin anuncio"`, lo que nunca coincide.
+
+**Solución:** sentinel interno `__missing__`:
+
+| Capa | Valor |
+|---|---|
+| URL generada por `buildSessionsHref` | `?content=__missing__` |
+| Adapter (`MockAdapter` y `listSessionsHogQL`) | Interpreta como `!utm_content && !ad_id` |
+| Chip activo en UI | Muestra "Sin anuncio" (no el valor técnico) |
+
+⚠️ **No convertir `__missing__` en texto visible de negocio.** No renombrar el sentinel
+sin actualizar el adapter y la UI simultáneamente. No usarlo para representar otras ausencias
+de campos — es específico de la dimensión `content`.
+
+### 15.6 Links de campañas → sesiones — usar parámetros por dimensión
+
+Los links desde `/campanas` y el dashboard hacia `/sesiones` deben usar el parámetro
+explícito de la dimensión, **no** el parámetro genérico `?q=`:
+
+| Dimensión | Param correcto | Param incorrecto |
+|---|---|---|
+| `campaign` | `?campaign=nombre` | `?q=nombre` |
+| `source` | `?source=Meta%20Ads` | `?q=Meta%20Ads` |
+| `medium` | `?medium=paid_social` | `?q=paid_social` |
+| `content` | `?content=id_anuncio` o `?content=__missing__` | `?q=...` |
+
+**Por qué:** `?q=` hace búsqueda libre en `session_id`, `visitor_id`, `service` y `utm_campaign`.
+Puede devolver resultados vacíos (si el texto no aparece en ninguno de esos campos) o
+resultados incorrectos (si el texto coincide con un campo distinto al esperado). Los parámetros
+explícitos usan filtros del adapter con lógica exacta.
+
+⚠️ Usar `?q=` solo para búsquedas libres iniciadas manualmente por el usuario (campo de
+búsqueda en `/sesiones`). Nunca para navegación programática desde otras páginas.

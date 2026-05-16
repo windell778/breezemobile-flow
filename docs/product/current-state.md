@@ -1,6 +1,6 @@
 # Current State
 
-_Última actualización: 2026-05-14_
+_Última actualización: 2026-05-16_
 
 ---
 
@@ -74,7 +74,7 @@ y revisar manualmente en PostHog.
 
 ---
 
-## 6. Lo que NO existe todavía
+## 5b. Lo que NO existe todavía
 
 - UTMs reales en datos — validar con una URL de campaña con parámetros
 - Autenticación
@@ -86,7 +86,26 @@ y revisar manualmente en PostHog.
 
 ---
 
-## 6. Próximos pasos recomendados (en orden)
+## 6. Flujo de navegación estable (2026-05-16)
+
+El flujo principal Dashboard → Campañas/Servicios/Eventos → Sesiones → Visitante → Grabaciones
+fue revisado y estabilizado. Comportamientos que deben mantenerse:
+
+- **Filtro `service`** — semántica ampliada: incluye sesiones cuyo `session.service` coincide
+  **o** cuyo `events[].service` coincide. Consistente con cómo `/servicios` agrega datos.
+  Ver `docs/architecture/data-flow-and-adapter.md §15.1`.
+- **"Sin anuncio" → `__missing__`** — sentinel interno para filtrar por ausencia de `utm_content`/`ad_id`.
+  Los links desde `/campanas?dimension=content` usan `?content=__missing__`, no el label humano.
+  Ver `docs/architecture/data-flow-and-adapter.md §15.5`.
+- **Links de campañas → sesiones** — usan parámetros por dimensión (`?campaign=`, `?source=`, etc.),
+  no `?q=` genérico. Ver `docs/architecture/data-flow-and-adapter.md §15.6`.
+- **Notas y badges de servicio** — cuando una sesión entra al filtro por eventos (no por servicio
+  principal), la UI muestra "Incluye eventos de X" y el timeline marca "Coincide con filtro".
+  Ver `docs/architecture/data-flow-and-adapter.md §15.3–15.4`.
+
+---
+
+## 7. Próximos pasos recomendados (en orden)
 
 1. **Pulir UX/UI** — las vistas tienen problemas de diseño que afectan la experiencia del usuario final.
 2. **Validar UTMs con tráfico real de campaña** — crear una URL con `?utm_source=facebook&utm_medium=paid_social&utm_campaign=nombre` y visitar la web. Confirmar que los campos llegan a PostHog.
