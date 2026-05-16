@@ -38,8 +38,8 @@ async function GrabacionesContent({ p }: { p: GrabacionesParams }) {
     <>
       <section className="grid gap-3 md:grid-cols-3">
         <Stat label="Grabaciones disponibles" value={recordings.length} />
-        <Stat label="Sesiones sin replay" value={missing} />
-        <Stat label="Proveedor V0" value="PostHog" />
+        <Stat label="Sesiones sin grabación" value={missing} />
+        <Stat label="Fuente de grabaciones" value="PostHog" />
       </section>
 
       <GrabacionesReplaySection
@@ -84,8 +84,8 @@ export default async function GrabacionesPage({ searchParams }: PageProps) {
 
   return (
     <AppShell
-      title="Grabaciones / replay"
-      description="Replay de sesiones reales desde PostHog. Selecciona una sesión de la lista para reproducir su grabación de comportamiento."
+      title="Grabaciones"
+      description="Reproduce sesiones reales y revisa qué hizo el visitante durante la visita."
     >
       {service ? (
         <div className="mb-4">

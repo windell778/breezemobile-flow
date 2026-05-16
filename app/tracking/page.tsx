@@ -34,7 +34,7 @@ export default async function TrackingPage() {
   return (
     <AppShell
       title="Tracking Health"
-      description="Trust Layer: validación del contrato de datos. Cada problema aquí afecta la confiabilidad de las métricas de la plataforma."
+      description="Revisa si los eventos, campañas y grabaciones están llegando correctamente."
     >
       {sorted.length === 0 ? (
         <EmptyState message="No hay items de tracking health disponibles." />
@@ -56,7 +56,7 @@ export default async function TrackingPage() {
 
       {/* Technical reference */}
       <section className="mt-6 grid gap-3 xl:grid-cols-3">
-        <Panel title="Eventos dataLayer / PostHog">
+        <Panel title="Eventos recibidos">
           {eventTypes.map((eventName) => (
             <CodePill key={eventName} label={`${eventLabels[eventName]} (${eventName})`} />
           ))}
@@ -66,7 +66,7 @@ export default async function TrackingPage() {
             <CodePill key={service} label={`${humanValue(service)} (${service})`} />
           ))}
         </Panel>
-        <Panel title="Fuentes futuras">
+        <Panel title="Integraciones previstas">
           {["PostHog API", "GTM/dataLayer validación", "Meta Ads API", "n8n + CAPI"].map((item) => (
             <CodePill key={item} label={item} />
           ))}

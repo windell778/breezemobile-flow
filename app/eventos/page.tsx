@@ -28,7 +28,7 @@ export default async function EventosPage({ searchParams }: PageProps) {
   return (
     <AppShell
       title="Eventos"
-      description="Explorador de eventos reales de V0: página vista, click en servicio y click en WhatsApp. No modela etapas comerciales posteriores."
+      description="Revisa las acciones capturadas en la web: páginas vistas, clicks en servicios y clicks a WhatsApp."
     >
       <section className="grid gap-3 md:grid-cols-3">
         {counts.map((item) => (
@@ -77,8 +77,8 @@ export default async function EventosPage({ searchParams }: PageProps) {
               </Link>
               <span className="text-slate-600">{event.page_path}<small className="block text-slate-400">{humanValue(event.service)}</small></span>
               <span className="text-slate-600">
-                {event.cta_text || "n/a"}
-                <small className="block text-slate-400">{event.cta_location || "n/a"}</small>
+                {event.cta_text || "Sin dato"}
+                <small className="block text-slate-400">{event.cta_location || "Sin dato"}</small>
                 <Link href={`/sesiones?event=${event.event_name}`} className="mt-1 block text-xs font-medium text-blue-700 hover:underline">
                   Ver sesiones con este evento
                 </Link>

@@ -13,25 +13,25 @@ export const navGroups: NavGroup[] = [
   {
     group: "Command Center",
     items: [
-      { label: "Overview", href: "/", icon: "◎" },
+      { label: "Resumen", href: "/", icon: "◎" },
     ],
   },
   {
-    group: "Behavior",
+    group: "Comportamiento",
     items: [
       { label: "Sesiones", href: "/sesiones", icon: "S" },
       { label: "Grabaciones", href: "/grabaciones", icon: "R" },
     ],
   },
   {
-    group: "Attribution",
+    group: "Atribución",
     items: [
       { label: "Campañas", href: "/campanas", icon: "C" },
       { label: "Servicios", href: "/servicios", icon: "P" },
     ],
   },
   {
-    group: "System",
+    group: "Sistema",
     items: [
       { label: "Tracking Health", href: "/tracking", icon: "T" },
       { label: "Eventos", href: "/eventos", icon: "E" },

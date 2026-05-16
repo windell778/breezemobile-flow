@@ -23,7 +23,7 @@ const tabs = [
   ["sesiones", "Sesiones"],
   ["eventos", "Eventos"],
   ["atribucion", "Atribución"],
-  ["tecnico", "Técnico"],
+  ["tecnico", "Datos técnicos"],
 ];
 
 const intentRank: Record<string, number> = { Alta: 3, Media: 2, Baja: 1 };
@@ -99,7 +99,7 @@ export default async function VisitorPage({ params, searchParams }: PageProps) {
       {/* KPIs */}
       <div className="mt-3 grid gap-3 sm:grid-cols-4">
         <KpiCard label="Sesiones" value={visitorSessions.length} />
-        <KpiCard label="WA clicks" value={waClicks} note="señal de intención" />
+        <KpiCard label="Clicks a WhatsApp" value={waClicks} note="señal de intención" />
         <KpiCard label="Servicios vistos" value={servicesViewed} />
         <KpiCard label="Grabaciones" value={recordingsCount} />
       </div>
@@ -250,7 +250,7 @@ function RecordingsTab({ sessions, visitorId, activeSessionId }: { sessions: Ses
                   Sesión {shortId(session.session_id)}
                 </p>
                 <StatusBadge
-                  label={session.recording?.status === "available" ? "Grabación" : "Sin replay"}
+                  label={session.recording?.status === "available" ? "Grabación" : "Sin grabación"}
                 />
               </div>
               <p className="mt-1 text-sm text-slate-500">
@@ -301,7 +301,7 @@ function JourneyTab({ sessions, visitorId }: { sessions: Session[]; visitorId: s
                     href={`/visitantes/${visitorId}?session=${session.session_id}&tab=grabaciones`}
                     className="bf-chip border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
                   >
-                    Ver replay
+                    Ver grabación
                   </Link>
                 )}
               </div>
@@ -380,7 +380,7 @@ function EventsTab({ sessions, activeSessionId }: { sessions: Session[]; activeS
           <span className="text-slate-500">{formatDateTime(event.timestamp)}</span>
           <span className="font-medium text-slate-950">{eventLabels[event.event_name]}</span>
           <span className="text-slate-600">{event.page_path}</span>
-          <span className="text-slate-600">{event.cta_text || "n/a"}</span>
+          <span className="text-slate-600">{event.cta_text || "Sin dato"}</span>
         </div>
       ))}
     </div>
@@ -395,7 +395,7 @@ function AttributionTab({ session }: { session: Session }) {
       <KeyValue label="Fuente" value={session.source} />
       <KeyValue label="Referencia" value={readableReferrer(session.attribution.referrer)} />
       {fields.map((field) => (
-        <KeyValue key={field} label={humanField(field)} value={session.attribution[field as keyof typeof session.attribution] || "n/a"} />
+        <KeyValue key={field} label={humanField(field)} value={session.attribution[field as keyof typeof session.attribution] || "Sin dato"} />
       ))}
     </div>
   );
@@ -405,7 +405,7 @@ function TechnicalTab({ session }: { session: Session }) {
   return (
     <div className="space-y-4">
       <div className="bf-panel p-4">
-        <h2 className="text-base font-semibold text-slate-950">Técnico / debug</h2>
+        <h2 className="text-base font-semibold text-slate-950">Datos técnicos</h2>
         <p className="mt-1 text-sm text-slate-500">
           Nombres técnicos y payloads completos. No domina la experiencia principal.
         </p>

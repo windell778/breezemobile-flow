@@ -79,7 +79,7 @@ export function formatDateTime(value: string) {
 }
 
 export function formatDuration(seconds: number | null | undefined): string {
-  if (seconds == null) return "n/a";
+  if (seconds == null) return "Sin duración";
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
