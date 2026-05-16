@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { GrabacionesReplaySection } from "@/components/recordings/GrabacionesReplaySection";
 import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
 import { humanValue } from "@/lib/labels";
+import type { ServiceKey } from "@/lib/data/types";
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -18,21 +19,32 @@ type GrabacionesParams = {
 };
 
 async function GrabacionesContent({ p }: { p: GrabacionesParams }) {
-  const allSessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID);
-  const scopedSessions = p.service ? allSessions.filter((s) => s.service === p.service) : allSessions;
+  // Use adapter-level filter so service scope matches /sesiones and /servicios:
+  // includes sessions whose primary service OR any event service matches.
+  const scopedSessions = await getAdapter().listSessions(
+    DEFAULT_WORKSPACE_ID,
+    p.service ? { service: p.service as ServiceKey } : undefined,
+  );
+
+  if (scopedSessions.length === 0) {
+    return (
+      <EmptyState
+        message={
+          p.service
+            ? `No hay sesiones para el servicio ${humanValue(p.service)}.`
+            : "No hay sesiones disponibles."
+        }
+      />
+    );
+  }
 
   const activeSession =
     scopedSessions.find((s) => s.session_id === p.selectedSessionId) ||
     scopedSessions.find((s) => s.recording?.status === "available") ||
-    scopedSessions[0] ||
-    allSessions[0];
+    scopedSessions[0];
 
-  const recordings = allSessions.filter((s) => s.recording?.status === "available");
-  const missing = allSessions.length - recordings.length;
-
-  if (!activeSession) {
-    return <EmptyState message="No hay sesiones disponibles." />;
-  }
+  const recordings = scopedSessions.filter((s) => s.recording?.status === "available");
+  const missing = scopedSessions.length - recordings.length;
 
   return (
     <>
@@ -43,7 +55,7 @@ async function GrabacionesContent({ p }: { p: GrabacionesParams }) {
       </section>
 
       <GrabacionesReplaySection
-        activeSession={activeSession}
+        activeSession={activeSession!}
         scopedSessions={scopedSessions}
         service={p.service}
       />

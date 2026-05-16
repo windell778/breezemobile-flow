@@ -329,7 +329,11 @@ export async function listSessionsHogQL(
     }
   }
   if (filters?.service) {
-    sessions = sessions.filter((s) => s.service === filters.service);
+    sessions = sessions.filter(
+      (s) =>
+        s.service === filters.service ||
+        s.events.some((e) => e.service === filters.service),
+    );
   }
   if (filters?.hasRecording !== undefined) {
     sessions = sessions.filter((s) => (s.recording?.status === "available") === filters.hasRecording);
