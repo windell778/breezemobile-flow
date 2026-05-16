@@ -11,7 +11,7 @@ export type NavGroup = {
 
 export const navGroups: NavGroup[] = [
   {
-    group: "Command Center",
+    group: "Operación",
     items: [
       { label: "Resumen", href: "/", icon: "◎" },
     ],
@@ -33,7 +33,7 @@ export const navGroups: NavGroup[] = [
   {
     group: "Sistema",
     items: [
-      { label: "Tracking Health", href: "/tracking", icon: "T" },
+      { label: "Estado del tracking", href: "/tracking", icon: "T" },
       { label: "Eventos", href: "/eventos", icon: "E" },
     ],
   },
