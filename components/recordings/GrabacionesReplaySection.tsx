@@ -64,10 +64,10 @@ export function GrabacionesReplaySection({ activeSession, scopedSessions, servic
 
       {/* Right: event timeline + session list */}
       <aside className="space-y-4">
-        <div className="bf-panel overflow-hidden">
-          <div className="border-b border-slate-200 px-3 py-2">
-            <h2 className="text-base font-semibold text-slate-950">Eventos</h2>
-            <p className="mt-1 text-xs text-slate-500">
+        <div className="overflow-hidden rounded-md border border-slate-800 bg-slate-950 text-white">
+          <div className="border-b border-white/10 px-3 py-2">
+            <h2 className="text-base font-semibold text-white">Eventos</h2>
+            <p className="mt-1 text-xs text-slate-400">
               {hasRecording
                 ? "Haz clic para saltar al momento aproximado en el replay."
                 : "Eventos registrados en esta sesión."}

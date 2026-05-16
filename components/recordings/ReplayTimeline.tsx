@@ -8,11 +8,11 @@ type Props = {
   sessionStartedAt: string;
   /**
    * When provided, each event row becomes clickable.
-   * Called with the approximate offset in ms from session start.
-   * Caller is responsible for applying the 2s safety margin before seeking
-   * (see docs/architecture/recordings.md §11 — timestamp alignment caveats).
+   * Called with the seek position in ms already adjusted by a 2s safety margin
+   * (i.e. offset − 2000ms, min 0) so the player shows context before the event fires.
+   * See docs/architecture/recordings.md §11 — timestamp alignment caveats.
    */
-  onSeek?: (offsetMs: number) => void;
+  onSeek?: (seekMs: number) => void;
 };
 
 const eventColors: Record<string, string> = {
