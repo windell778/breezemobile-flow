@@ -15,6 +15,8 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+const DEFAULT_LIMIT = 25;
+
 const filterChips = [
   { key: "todas", label: "Todas" },
   { key: "whatsapp", label: "WhatsApp click" },
@@ -38,7 +40,22 @@ type TableParams = {
   source: string;
   event: string;
   campaign: string;
+  page: number;
+  limit: number;
 };
+
+function buildPageHref(p: TableParams, newPage: number): string {
+  const q = new URLSearchParams();
+  if (p.filter !== "todas") q.set("filter", p.filter);
+  if (p.query) q.set("q", p.query);
+  if (p.service) q.set("service", p.service);
+  if (p.source) q.set("source", p.source);
+  if (p.event) q.set("event", p.event);
+  if (p.campaign) q.set("campaign", p.campaign);
+  if (p.limit !== DEFAULT_LIMIT) q.set("limit", String(p.limit));
+  q.set("page", String(newPage));
+  return `/sesiones?${q.toString()}`;
+}
 
 async function SessionsTable({ p }: { p: TableParams }) {
   const adapterFilters: SessionFilters = {};
@@ -54,31 +71,38 @@ async function SessionsTable({ p }: { p: TableParams }) {
   else if (p.filter === "service") adapterFilters.eventName = "service_click";
   if (p.event) adapterFilters.eventName = p.event as EventName;
 
-  // V0: no pagination. Adapter-level filters are pushed to PostHog HogQL when
-  // DATA_SOURCE=posthog. JS post-filtering below only handles cases the adapter
-  // doesn't model yet. Add limit/offset when sessions regularly exceed ~500.
+  // Fetch limit+1 to detect whether a next page exists without a separate
+  // count query. JS post-filters (sin_interaccion, campaign) are rare enough
+  // that occasional off-by-one is acceptable at V0 volumes.
+  adapterFilters.limit = p.limit + 1;
+  adapterFilters.offset = (p.page - 1) * p.limit;
+
   const allSessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID, adapterFilters);
 
+  // JS-level filters the adapter doesn't model yet (see data-flow-and-adapter.md §9).
   const visible = allSessions.filter((session) => {
     const matchesSinInteraccion = p.filter !== "sin_interaccion" || session.events.length === 1;
     const matchesCampaign = !p.campaign || session.attribution.utm_campaign.toLowerCase() === p.campaign;
     return matchesSinInteraccion && matchesCampaign;
   });
 
-  if (visible.length === 0) {
+  const hasNextPage = visible.length > p.limit;
+  const display = visible.slice(0, p.limit);
+
+  if (display.length === 0) {
     return <EmptyState message="No se encontraron sesiones con los filtros actuales." />;
   }
 
-  const whatsappCount = visible.filter((s) => sessionHasEvent(s, "whatsapp_click")).length;
-  const replayCount = visible.filter((s) => s.recording?.status === "available").length;
+  const whatsappCount = display.filter((s) => sessionHasEvent(s, "whatsapp_click")).length;
+  const replayCount = display.filter((s) => s.recording?.status === "available").length;
 
   return (
     <>
       <section className="grid gap-3 md:grid-cols-4">
-        <MiniMetric label="Sesiones visibles" value={visible.length} />
-        <MiniMetric label="WhatsApp clicks" value={whatsappCount} />
+        <MiniMetric label="Sesiones esta página" value={display.length} />
+        <MiniMetric label="WA clicks" value={whatsappCount} />
         <MiniMetric label="Con replay" value={replayCount} />
-        <MiniMetric label="Tipos de evento" value="3" />
+        <MiniMetric label="Página" value={p.page} />
       </section>
 
       <section className="bf-panel bf-defer mt-4 overflow-hidden">
@@ -90,9 +114,33 @@ async function SessionsTable({ p }: { p: TableParams }) {
           <span>Atribución</span>
           <span>Actividad</span>
         </div>
-        {visible.map((session) => (
+        {display.map((session) => (
           <SessionRow key={session.session_id} session={session} />
         ))}
+
+        {/* Pagination controls inside the panel */}
+        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-4 py-3">
+          <p className="text-sm text-slate-500">
+            Página {p.page} · {display.length} sesión{display.length !== 1 ? "es" : ""}
+            {hasNextPage ? " · hay más" : ""}
+          </p>
+          <div className="flex items-center gap-2">
+            {p.page > 1 ? (
+              <Link href={buildPageHref(p, p.page - 1)} className="bf-control text-slate-700 hover:bg-slate-50">
+                ← Anterior
+              </Link>
+            ) : (
+              <span className="bf-control cursor-not-allowed text-slate-300">← Anterior</span>
+            )}
+            {hasNextPage ? (
+              <Link href={buildPageHref(p, p.page + 1)} className="bf-control text-slate-700 hover:bg-slate-50">
+                Siguiente →
+              </Link>
+            ) : (
+              <span className="bf-control cursor-not-allowed text-slate-300">Siguiente →</span>
+            )}
+          </div>
+        </div>
       </section>
     </>
   );
@@ -106,44 +154,35 @@ function SessionRow({ session }: { session: Session }) {
         intentBorder[session.intent_level] ?? "border-l-slate-200"
       }`}
     >
-      {/* Stretched link — click anywhere on the row → Visitor Intelligence */}
       <Link
         href={`/visitantes/${session.visitor_id}?session=${session.session_id}`}
         aria-label={`Ver visitante ${shortId(session.visitor_id)} · sesión ${shortId(session.session_id)}`}
         className="absolute inset-0 z-10"
       />
-
-      {/* Content — pointer-events-none so clicks reach the stretched link */}
       <div className="pointer-events-none grid gap-3 px-3 py-2.5 text-sm xl:contents">
         <div className="text-slate-500">
           <p>{formatDateTime(session.timestamp)}</p>
           <p className="mt-1 font-mono text-xs">{formatDuration(session.duration)}</p>
         </div>
-
         <div>
           <p className="font-mono font-semibold text-cyan-700">{shortId(session.session_id)}</p>
           <p className="mt-1 text-xs text-slate-500">{session.events.length} eventos</p>
         </div>
-
         <div>
           <p className="font-mono font-medium text-slate-950">{shortId(session.visitor_id)}</p>
           <p className="mt-1 text-slate-600">{humanValue(session.service)} · {session.page_path}</p>
         </div>
-
         <div className="flex flex-wrap gap-2">
           <SourceBadge source={session.source} />
           <StatusBadge label={`${session.intent_level} intención`} />
         </div>
-
         <div>
           <p className="font-medium text-slate-950">{session.attribution.utm_campaign || "Sin campaña"}</p>
           <p className="mt-1 text-slate-500">{session.attribution.utm_content || session.attribution.ad_id || "Sin anuncio"}</p>
         </div>
-
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge label={mainEventLabel(session)} />
           {hasRecording && (
-            // z-20 + pointer-events-auto: Replay stays independently clickable
             <Link
               href={`/visitantes/${session.visitor_id}?session=${session.session_id}&tab=grabaciones`}
               className="pointer-events-auto relative z-20 rounded-md border border-blue-200 px-1.5 py-1 text-xs text-blue-700 hover:bg-blue-50"
@@ -191,8 +230,10 @@ export default async function SesionesPage({ searchParams }: PageProps) {
   const source = String(params.source || "");
   const event = String(params.event || "");
   const campaign = String(params.campaign || "").toLowerCase();
+  const page = Math.max(1, parseInt(String(params.page || "1"), 10));
+  const limit = Math.min(100, Math.max(5, parseInt(String(params.limit || String(DEFAULT_LIMIT)), 10)));
 
-  const p: TableParams = { filter, query, service, source, event, campaign };
+  const p: TableParams = { filter, query, service, source, event, campaign, page, limit };
 
   return (
     <AppShell

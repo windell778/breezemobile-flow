@@ -1,6 +1,6 @@
 # Flujo de datos y DataAdapter
 
-_Última actualización: 2026-05-15_
+_Última actualización: 2026-05-16_
 
 Este documento explica cómo fluyen los datos desde PostHog hasta la UI,
 cómo está diseñado el sistema de adaptadores, y las limitaciones actuales
@@ -463,6 +463,132 @@ texto libre en queries es el vector clásico de injection.
 
 ---
 
+## 13. Paginación en `/sesiones` — truco limit+1
+
+### Por qué no hay una query de conteo separada
+
+Obtener el total de resultados requiere una segunda query (COUNT(*)) que
+en PostHog significa otro round-trip a HogQL. Para V0 con volúmenes bajos,
+se usa el truco `limit+1`: se pide un resultado más del que se va a mostrar.
+Si llegan `limit+1` resultados, hay una página siguiente; si llegan `limit`
+o menos, es la última página.
+
+```typescript
+// app/sesiones/page.tsx — SessionsTable
+adapterFilters.limit = p.limit + 1;
+adapterFilters.offset = (p.page - 1) * p.limit;
+
+const allSessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID, adapterFilters);
+// JS post-filters (sin_interaccion, campaign)
+const visible = allSessions.filter(...);
+
+const hasNextPage = visible.length > p.limit;
+const display = visible.slice(0, p.limit);  // descartar el +1 extra
+```
+
+### Parámetros de URL
+
+| Param | Default | Rango | Nota |
+|---|---|---|---|
+| `page` | `1` | ≥ 1 | Controlado por `Math.max(1, parseInt(...))` |
+| `limit` | `25` | 5 – 100 | `Math.min(100, Math.max(5, parseInt(...)))` |
+
+### Preservación de filtros en la paginación
+
+`buildPageHref(p, newPage)` reconstruye la URL con todos los filtros
+activos al cambiar de página. Los chips de filtro no incluyen `&page=X`,
+lo que implica un reset natural a página 1 al cambiar filtros.
+
+```typescript
+function buildPageHref(p: TableParams, newPage: number): string {
+  const q = new URLSearchParams();
+  if (p.filter !== "todas") q.set("filter", p.filter);
+  if (p.query) q.set("q", p.query);
+  // ... resto de filtros ...
+  q.set("page", String(newPage));
+  return `/sesiones?${q.toString()}`;
+}
+```
+
+### Imprecisión conocida con JS post-filters
+
+El truco `limit+1` asume que los JS post-filters (sin_interaccion, campaign)
+no eliminan resultados. Si lo hacen, el conteo visible puede ser menor que
+`limit` incluso cuando hay página siguiente en el adapter. El resultado es
+que `hasNextPage` puede ser `false` aunque existan más datos.
+
+Esta imprecisión es aceptable en V0 porque `sin_interaccion` y `campaign`
+son filtros poco usados y los volúmenes son bajos. Cuando el volumen crezca
+o se adopten más filtros JS, mover estos filtros al adapter o agregar una
+query de conteo separada.
+
+### `SessionFilters.limit` y `offset` en los adapters
+
+Ambos campos ya están definidos en `types.ts` y son manejados por ambos adapters:
+
+- `MockAdapter`: aplica `.slice(offset, offset + limit)` sobre datos mock en memoria.
+- `PostHogAdapter`: no los baja a SQL directamente (HogQL usa `LIMIT 5000`).
+  El adapter aplica offset/limit sobre las sesiones reconstruidas en memoria.
+
+---
+
+## 14. Dimensión `campaign` en `/campanas` — `getCampaignSummaries()`
+
+### El problema que resuelve
+
+Para la dimensión "campaña" en `/campanas`, la implementación original
+llamaba a `listSessions()` y agrupaba en JS:
+
+```
+listSessions() → todas las sesiones → agrupar por utm_campaign en JS
+```
+
+Esto descargaba toda la lista de sesiones solo para obtener un agregado.
+`getCampaignSummaries()` ya existe en ambos adapters y devuelve directamente
+el agregado por campaña — sin cargar sesiones individuales.
+
+### Implementación actual
+
+```typescript
+// app/campanas/page.tsx — AttributionTable
+if (dimension === "campaign") {
+  const campaigns = await adapter.getCampaignSummaries(DEFAULT_WORKSPACE_ID);
+  rows = buildRowsFromCampaigns(campaigns);
+} else {
+  // V0: build aggregate from listSessions for source/medium/content.
+  // Acceptable at current volumes; replace with adapter-level HogQL
+  // aggregate queries before data exceeds ~500 sessions.
+  const sessions = await adapter.listSessions(DEFAULT_WORKSPACE_ID);
+  rows = buildAttributionRows(sessions, dimension);
+}
+```
+
+### Por qué las otras dimensiones aún usan `listSessions()`
+
+`getCampaignSummaries()` devuelve un agregado pre-calculado que incluye
+`sessions`, `service_clicks`, `whatsapp_clicks`, y `campaign_id`.
+Equivalentes para `source`, `medium`, y `content` no existen aún en el
+adapter. Crearlos requiere HogQL aggregate queries nuevas (equivalentes a
+`getCampaignSummariesHogQL` pero agrupando por las otras dimensiones).
+
+TODO: implementar `getSourceSummaries()`, `getMediumSummaries()` y
+`getContentSummaries()` en el adapter antes de que el volumen supere
+~500 sesiones activas.
+
+### Señal semántica — recordatorio
+
+```
+whatsapp_click = señal de intención anónima (evento de comportamiento)
+whatsapp_click ≠ lead confirmado
+whatsapp_click ≠ venta
+whatsapp_click ≠ revenue
+```
+
+Ninguna métrica en `/campanas` puede implicar conversión confirmada,
+costo, ROAS, ni datos comerciales. Solo señales de comportamiento.
+
+---
+
 ## 10. Patrón `EmptyState`
 
 ### Por qué existe
@@ -494,6 +620,9 @@ export function EmptyState({ message = "No hay datos disponibles." }: EmptyState
 | `app/sesiones/page.tsx` | `visible.length === 0` después de filtros |
 | `app/eventos/page.tsx` | `visibleEvents.length === 0` después de filtros |
 | `app/grabaciones/page.tsx` | Lista de sesiones vacía |
+| `app/campanas/page.tsx` | `rows.length === 0` por dimensión |
+| `app/servicios/page.tsx` | `servicePageSummaries.length === 0` |
+| `app/tracking/page.tsx` | `sorted.length === 0` (oculta también el banner de estado) |
 
 ### Cuándo usarlo vs. no usarlo
 

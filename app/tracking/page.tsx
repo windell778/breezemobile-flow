@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
 import { eventTypes, serviceKeys, trackingFields } from "@/lib/mock-data";
@@ -35,17 +36,23 @@ export default async function TrackingPage() {
       title="Tracking Health"
       description="Trust Layer: validación del contrato de datos. Cada problema aquí afecta la confiabilidad de las métricas de la plataforma."
     >
-      {/* Overall trust status */}
-      <div className={`mb-5 rounded-md border px-4 py-3 text-sm font-medium ${trustStatus.cls}`}>
-        {trustStatus.label} · {sorted.length} item{sorted.length !== 1 ? "s" : ""} monitoreado{sorted.length !== 1 ? "s" : ""}
-      </div>
+      {sorted.length === 0 ? (
+        <EmptyState message="No hay items de tracking health disponibles." />
+      ) : (
+        <>
+          {/* Overall trust status */}
+          <div className={`mb-5 rounded-md border px-4 py-3 text-sm font-medium ${trustStatus.cls}`}>
+            {trustStatus.label} · {sorted.length} item{sorted.length !== 1 ? "s" : ""} monitoreado{sorted.length !== 1 ? "s" : ""}
+          </div>
 
-      {/* Health items */}
-      <section className="space-y-3">
-        {sorted.map((item) => (
-          <HealthCard key={item.id} item={item} />
-        ))}
-      </section>
+          {/* Health items */}
+          <section className="space-y-3">
+            {sorted.map((item) => (
+              <HealthCard key={item.id} item={item} />
+            ))}
+          </section>
+        </>
+      )}
 
       {/* Technical reference */}
       <section className="mt-6 grid gap-3 xl:grid-cols-3">

@@ -4,9 +4,10 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { SourceBadge } from "@/components/ui/SourceBadge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
 import { waRate } from "@/lib/metrics";
-import type { Session, Source } from "@/lib/data/types";
+import type { Session, Source, CampaignSummary } from "@/lib/data/types";
 
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -21,21 +22,45 @@ const dimensions: { key: Dimension; label: string; caption: string }[] = [
   { key: "content", label: "Anuncio / Creativo", caption: "utm_content o ad_id" },
 ];
 
+type AttributionRow = {
+  key: string;
+  label: string;
+  technical: string;
+  source: Source;
+  sessions: number;
+  serviceClicks: number;
+  whatsappClicks: number;
+  rate: number;
+};
+
 function signalLabel(waClicks: number, sessions: number): { label: string; cls: string } {
   if (sessions === 0) return { label: "Sin datos", cls: "bg-slate-100 text-slate-500" };
   if (waClicks === 0) return { label: "Sin señal WA", cls: "bg-slate-100 text-slate-500" };
   if (waClicks >= 3) return { label: "Alta señal", cls: "bg-emerald-100 text-emerald-700" };
-  if (waClicks >= 1) return { label: "Señal baja", cls: "bg-amber-100 text-amber-700" };
-  return { label: "Sin señal", cls: "bg-slate-100 text-slate-500" };
+  return { label: "Señal baja", cls: "bg-amber-100 text-amber-700" };
 }
 
 async function AttributionTable({ dimension }: { dimension: Dimension }) {
-  // V0: aggregates built in-memory from all sessions.
-  // TODO: replace with adapter-level HogQL aggregate queries per dimension
-  // (getCampaignSummaries already exists for "campaign"; source/medium/content
-  // need dedicated queries to avoid loading all sessions when data grows).
-  const sessions = await getAdapter().listSessions(DEFAULT_WORKSPACE_ID);
-  const rows = buildAttributionRows(sessions, dimension);
+  const adapter = getAdapter();
+  let rows: AttributionRow[];
+
+  if (dimension === "campaign") {
+    // getCampaignSummaries() avoids loading all sessions for this dimension.
+    // PostHogAdapter uses an aggregate HogQL query; MockAdapter uses static data.
+    // TODO: build equivalent aggregate methods for source/medium/content dimensions.
+    const campaigns = await adapter.getCampaignSummaries(DEFAULT_WORKSPACE_ID);
+    rows = buildRowsFromCampaigns(campaigns);
+  } else {
+    // V0: build aggregate from listSessions for source/medium/content.
+    // Acceptable at current volumes; replace with adapter-level HogQL
+    // aggregate queries before data exceeds ~500 sessions.
+    const sessions = await adapter.listSessions(DEFAULT_WORKSPACE_ID);
+    rows = buildAttributionRows(sessions, dimension);
+  }
+
+  if (rows.length === 0) {
+    return <EmptyState message="No hay datos de atribución disponibles para esta dimensión." />;
+  }
 
   return (
     <section className="bf-panel bf-defer mt-4 overflow-hidden">
@@ -152,6 +177,23 @@ export default async function CampanasPage({ searchParams }: PageProps) {
   );
 }
 
+// ─── Row builders ─────────────────────────────────────────────────────────────
+
+function buildRowsFromCampaigns(campaigns: CampaignSummary[]): AttributionRow[] {
+  return campaigns
+    .map((c) => ({
+      key: `campaign:${c.name}:${c.source}`,
+      label: c.name || "Sin campaña",
+      technical: c.campaign_id || "",
+      source: c.source,
+      sessions: c.sessions,
+      serviceClicks: c.service_clicks,
+      whatsappClicks: c.whatsapp_clicks,
+      rate: waRate(c.whatsapp_clicks, c.sessions),
+    }))
+    .sort((a, b) => b.whatsappClicks - a.whatsappClicks || b.sessions - a.sessions);
+}
+
 function getDimensionValue(session: Session, dimension: Dimension) {
   if (dimension === "source")
     return { label: session.source, technical: session.attribution.utm_source || session.source };
@@ -162,30 +204,29 @@ function getDimensionValue(session: Session, dimension: Dimension) {
   return { label: session.attribution.utm_campaign || "Sin campaña", technical: session.attribution.campaign_id };
 }
 
-function buildAttributionRows(sessions: Session[], dimension: Dimension) {
-  const grouped = sessions.reduce<
-    Record<
-      string,
-      { label: string; technical: string; source: Source; sessions: number; serviceClicks: number; whatsappClicks: number }
-    >
-  >((acc, session) => {
-    const value = getDimensionValue(session, dimension);
-    const key = `${dimension}:${value.label}:${session.source}`;
-    acc[key] ||= {
-      label: value.label,
-      technical: value.technical,
-      source: session.source,
-      sessions: 0,
-      serviceClicks: 0,
-      whatsappClicks: 0,
-    };
-    acc[key].sessions += 1;
-    acc[key].serviceClicks += session.events.filter((e) => e.event_name === "service_click").length;
-    acc[key].whatsappClicks += session.events.filter((e) => e.event_name === "whatsapp_click").length;
-    return acc;
-  }, {});
+function buildAttributionRows(sessions: Session[], dimension: Dimension): AttributionRow[] {
+  const grouped = sessions.reduce<Record<string, Omit<AttributionRow, "rate">>>(
+    (acc, session) => {
+      const value = getDimensionValue(session, dimension);
+      const key = `${dimension}:${value.label}:${session.source}`;
+      acc[key] ||= {
+        key,
+        label: value.label,
+        technical: value.technical,
+        source: session.source,
+        sessions: 0,
+        serviceClicks: 0,
+        whatsappClicks: 0,
+      };
+      acc[key].sessions += 1;
+      acc[key].serviceClicks += session.events.filter((e) => e.event_name === "service_click").length;
+      acc[key].whatsappClicks += session.events.filter((e) => e.event_name === "whatsapp_click").length;
+      return acc;
+    },
+    {}
+  );
 
-  return Object.entries(grouped)
-    .map(([key, row]) => ({ key, ...row, rate: waRate(row.whatsappClicks, row.sessions) }))
+  return Object.values(grouped)
+    .map((row) => ({ ...row, rate: waRate(row.whatsappClicks, row.sessions) }))
     .sort((a, b) => b.whatsappClicks - a.whatsappClicks || b.sessions - a.sessions);
 }
