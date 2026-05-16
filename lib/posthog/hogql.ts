@@ -312,6 +312,18 @@ export async function listSessionsHogQL(
   if (filters?.source) {
     sessions = sessions.filter((s) => s.source === filters.source);
   }
+  if (filters?.medium) {
+    const m = filters.medium.toLowerCase();
+    sessions = sessions.filter((s) => (s.attribution.utm_medium.toLowerCase() || "none") === m);
+  }
+  if (filters?.content) {
+    const c = filters.content.toLowerCase();
+    sessions = sessions.filter(
+      (s) =>
+        s.attribution.utm_content.toLowerCase() === c ||
+        s.attribution.ad_id.toLowerCase() === c,
+    );
+  }
   if (filters?.service) {
     sessions = sessions.filter((s) => s.service === filters.service);
   }

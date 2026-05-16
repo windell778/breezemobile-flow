@@ -139,6 +139,18 @@ class MockAdapter implements DataAdapter {
     if (filters?.source) {
       result = result.filter((s) => s.source === filters.source);
     }
+    if (filters?.medium) {
+      const m = filters.medium.toLowerCase();
+      result = result.filter((s) => (s.attribution.utm_medium.toLowerCase() || "none") === m);
+    }
+    if (filters?.content) {
+      const c = filters.content.toLowerCase();
+      result = result.filter(
+        (s) =>
+          s.attribution.utm_content.toLowerCase() === c ||
+          s.attribution.ad_id.toLowerCase() === c,
+      );
+    }
     if (filters?.service) {
       result = result.filter((s) => s.service === filters.service);
     }
