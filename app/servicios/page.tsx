@@ -34,45 +34,70 @@ function ServiceCard({ page }: { page: ServicePageSummary }) {
     page.sessions > 0 ? Math.round((page.whatsapp_clicks / page.sessions) * 100) : 0;
 
   return (
-    <article className="bf-panel overflow-hidden">
-      {/* Signal funnel bar */}
-      <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+    <article
+      className="overflow-hidden rounded-xl border"
+      style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+    >
+      {/* Header */}
+      <div
+        className="border-b px-5 py-4"
+        style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border)" }}
+      >
         <div className="flex items-center justify-between gap-2">
-          <h2 className="font-semibold text-slate-950">{humanValue(page.service)}</h2>
-          <span className="font-mono text-xs text-slate-400">{page.path}</span>
+          <h2 className="font-semibold" style={{ color: "var(--color-text-1)" }}>
+            {humanValue(page.service)}
+          </h2>
+          <span className="font-mono text-xs" style={{ color: "var(--color-text-3)" }}>
+            {page.path}
+          </span>
         </div>
-        {/* Mini funnel: sessions → service clicks → WA clicks */}
-        <div className="mt-3 space-y-1.5">
-          <FunnelBar label="Sesiones" value={page.sessions} max={page.sessions} color="bg-slate-300" />
-          <FunnelBar label="Clicks en servicios" value={page.service_clicks} max={page.sessions} color="bg-blue-400" />
-          <FunnelBar label="Clicks a WhatsApp" value={page.whatsapp_clicks} max={page.sessions} color="bg-emerald-500" />
+        {/* Mini funnel */}
+        <div className="mt-4 space-y-2">
+          <FunnelBar label="Sesiones" value={page.sessions} max={page.sessions} color="var(--color-border-2)" />
+          <FunnelBar label="Clicks servicios" value={page.service_clicks} max={page.sessions} color="var(--color-primary)" />
+          <FunnelBar label="WhatsApp" value={page.whatsapp_clicks} max={page.sessions} color="var(--color-signal)" />
         </div>
       </div>
 
-      {/* Metrics */}
-      <div className="p-4">
+      {/* Métricas */}
+      <div className="p-5">
         <div className="grid grid-cols-2 gap-3">
           <Metric label="Sesiones" value={page.sessions} />
           <Metric label="Vistas de página" value={page.page_views} />
           <Metric label="Clicks en servicios" value={page.service_clicks} />
-          <Metric label="Clicks a WhatsApp" value={page.whatsapp_clicks} highlight />
+          <Metric label="WhatsApp clicks" value={page.whatsapp_clicks} highlight />
         </div>
 
-        <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-          <span>Clicks totales: <span className="font-semibold text-slate-700">{totalSignal}</span></span>
-          <span>% WhatsApp: <span className="font-semibold text-emerald-700">{conversionRate}%</span></span>
+        <div
+          className="mt-3 flex items-center justify-between text-xs"
+          style={{ color: "var(--color-text-3)" }}
+        >
+          <span>
+            Clicks totales:{" "}
+            <span className="font-semibold" style={{ color: "var(--color-text-2)" }}>
+              {totalSignal}
+            </span>
+          </span>
+          <span>
+            % WA:{" "}
+            <span className="font-semibold" style={{ color: "var(--color-signal-text)" }}>
+              {conversionRate}%
+            </span>
+          </span>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
             href={`/sesiones?service=${page.service}`}
-            className="bf-control border-slate-950 bg-slate-950 text-white hover:bg-slate-800"
+            className="bf-control text-white transition-colors hover:opacity-90"
+            style={{ background: "var(--color-primary)", borderColor: "var(--color-primary)" }}
           >
             Ver sesiones
           </Link>
           <Link
             href={`/grabaciones?service=${page.service}`}
-            className="bf-control text-slate-700 hover:bg-slate-50"
+            className="bf-control transition-colors hover:bg-[var(--color-surface-2)]"
+            style={{ borderColor: "var(--color-border)", color: "var(--color-text-1)" }}
           >
             Ver grabaciones
           </Link>
@@ -83,16 +108,27 @@ function ServiceCard({ page }: { page: ServicePageSummary }) {
 }
 
 function FunnelBar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
-  // Capped at 100%: service_clicks / whatsapp_clicks can exceed session count
-  // because a single session may contain multiple clicks.
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
     <div className="flex items-center gap-2">
-      <span className="w-24 shrink-0 text-[11px] text-slate-500">{label}</span>
-      <div className="flex-1 rounded-full bg-slate-200" style={{ height: 6 }}>
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      <span className="w-24 shrink-0 text-[11px]" style={{ color: "var(--color-text-3)" }}>
+        {label}
+      </span>
+      <div
+        className="flex-1 overflow-hidden rounded-full"
+        style={{ height: 5, background: "var(--color-border)" }}
+      >
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${pct}%`, background: color }}
+        />
       </div>
-      <span className="w-6 text-right text-[11px] font-semibold text-slate-700">{value}</span>
+      <span
+        className="w-6 text-right text-[11px] font-semibold"
+        style={{ color: "var(--color-text-2)" }}
+      >
+        {value}
+      </span>
     </div>
   );
 }
@@ -100,8 +136,13 @@ function FunnelBar({ label, value, max, color }: { label: string; value: number;
 function Metric({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
   return (
     <div>
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className={`mt-1 text-lg font-semibold ${highlight ? "text-emerald-700" : "text-slate-950"}`}>
+      <p className="text-xs" style={{ color: "var(--color-text-3)" }}>
+        {label}
+      </p>
+      <p
+        className="mt-1 text-lg font-semibold"
+        style={{ color: highlight ? "var(--color-signal-text)" : "var(--color-text-1)" }}
+      >
         {value}
       </p>
     </div>

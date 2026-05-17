@@ -13,18 +13,19 @@ export function NavLinks({ compact = false }: NavLinksProps) {
 
   if (compact) {
     return (
-      <nav className="flex gap-2 overflow-x-auto pb-1">
+      <nav className="flex gap-1.5 overflow-x-auto pb-1">
         {navItems.map((item) => {
           const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           return (
             <Link
               key={item.label}
               href={item.href}
-              className={`shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium ${
+              className="shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium"
+              style={
                 active
-                  ? "border-slate-900 bg-slate-950 text-white"
-                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-              }`}
+                  ? { borderColor: "var(--color-primary)", background: "var(--color-primary-bg)", color: "var(--color-primary)" }
+                  : { borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text-2)" }
+              }
             >
               {item.label}
             </Link>
@@ -38,7 +39,10 @@ export function NavLinks({ compact = false }: NavLinksProps) {
     <nav className="space-y-5">
       {navGroups.map((group) => (
         <div key={group.group}>
-          <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+          <p
+            className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.18em]"
+            style={{ color: "var(--color-text-3)" }}
+          >
             {group.group}
           </p>
           <div className="space-y-0.5">
@@ -49,22 +53,14 @@ export function NavLinks({ compact = false }: NavLinksProps) {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] font-medium transition-colors ${
+                  className="flex h-8 items-center rounded-md px-2 text-[13px] font-medium transition-colors"
+                  style={
                     active
-                      ? "bg-slate-100 text-slate-950"
-                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                  }`}
+                      ? { background: "var(--color-primary-bg)", color: "var(--color-primary)" }
+                      : { color: "var(--color-text-2)" }
+                  }
                 >
-                  <span
-                    className={`grid h-5 w-5 shrink-0 place-items-center rounded text-[10px] ${
-                      active
-                        ? "bg-slate-950 text-white"
-                        : "bg-slate-100 text-slate-400"
-                    }`}
-                  >
-                    {item.icon}
-                  </span>
-                  <span>{item.label}</span>
+                  {item.label}
                 </Link>
               );
             })}

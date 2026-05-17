@@ -4,42 +4,58 @@ export function Sidebar() {
   const isPostHog = process.env.DATA_SOURCE === "posthog";
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[260px] flex-col bg-white">
+    <aside
+      className="sticky top-0 hidden h-screen w-[240px] shrink-0 flex-col border-r lg:flex"
+      style={{
+        background: "var(--color-surface)",
+        borderColor: "var(--color-border)",
+      }}
+    >
       {/* Brand */}
-      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-4">
-        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-slate-950 font-mono text-sm font-semibold text-white">
-          BM
+      <div
+        className="flex h-14 items-center gap-3 border-b px-4"
+        style={{ borderColor: "var(--color-border)" }}
+      >
+        <div
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+          style={{ background: "var(--color-primary)" }}
+        >
+          <span className="text-[10px] font-bold tracking-tight text-white">BM</span>
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-slate-950">BreezeMobile</p>
-          <p className="truncate text-xs text-slate-400">Flow Intelligence</p>
+          <p className="truncate text-[13px] font-semibold" style={{ color: "var(--color-text-1)" }}>
+            BreezeMobile
+          </p>
+          <p className="truncate text-[10px]" style={{ color: "var(--color-text-3)" }}>
+            Flow Intelligence
+          </p>
         </div>
       </div>
 
       {/* Nav */}
-      <div className="flex-1 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 overflow-y-auto px-2 py-4">
         <NavLinks />
-      </div>
+      </nav>
 
-      {/* Data source badge */}
-      <div className="shrink-0 border-t border-slate-200 p-3">
-        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold text-slate-700">Fuente de datos</p>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                isPostHog
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-slate-200 text-slate-600"
-              }`}
-            >
-              {isPostHog ? "PostHog" : "Mock"}
-            </span>
-          </div>
-          <p className="mt-1 text-[11px] leading-4 text-slate-400">
-            {isPostHog ? "Datos reales desde PostHog." : "Datos simulados, misma estructura."}{" "}
-            Tracking validado con GTM/dataLayer.
-          </p>
+      {/* Data source */}
+      <div
+        className="shrink-0 border-t px-3 py-3"
+        style={{ borderColor: "var(--color-border)" }}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px]" style={{ color: "var(--color-text-3)" }}>
+            Fuente de datos
+          </span>
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+            style={
+              isPostHog
+                ? { background: "var(--color-signal-bg)", color: "var(--color-signal-text)" }
+                : { background: "var(--color-surface-2)", color: "var(--color-text-2)" }
+            }
+          >
+            {isPostHog ? "PostHog" : "Mock"}
+          </span>
         </div>
       </div>
     </aside>

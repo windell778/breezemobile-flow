@@ -19,8 +19,6 @@ type GrabacionesParams = {
 };
 
 async function GrabacionesContent({ p }: { p: GrabacionesParams }) {
-  // Use adapter-level filter so service scope matches /sesiones and /servicios:
-  // includes sessions whose primary service OR any event service matches.
   const scopedSessions = await getAdapter().listSessions(
     DEFAULT_WORKSPACE_ID,
     p.service ? { service: p.service as ServiceKey } : undefined,
@@ -48,10 +46,29 @@ async function GrabacionesContent({ p }: { p: GrabacionesParams }) {
 
   return (
     <>
-      <section className="grid gap-3 md:grid-cols-3">
-        <Stat label="Grabaciones disponibles" value={recordings.length} />
-        <Stat label="Sesiones sin grabación" value={missing} />
-        <Stat label="Fuente de grabaciones" value="PostHog" />
+      {/* Stats compactas */}
+      <section
+        className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border"
+        style={{ background: "var(--color-border)", borderColor: "var(--color-border)" }}
+      >
+        {[
+          { label: "Grabaciones disponibles", value: recordings.length },
+          { label: "Sin grabación", value: missing },
+          { label: "Fuente", value: "PostHog" },
+        ].map(({ label, value }) => (
+          <div
+            key={label}
+            className="flex flex-col px-5 py-3"
+            style={{ background: "var(--color-surface)" }}
+          >
+            <span className="text-[10px] font-medium" style={{ color: "var(--color-text-3)" }}>
+              {label}
+            </span>
+            <span className="mt-1 text-2xl font-bold tracking-tight" style={{ color: "var(--color-text-1)" }}>
+              {value}
+            </span>
+          </div>
+        ))}
       </section>
 
       <GrabacionesReplaySection
@@ -66,22 +83,25 @@ async function GrabacionesContent({ p }: { p: GrabacionesParams }) {
 function GrabacionesLoading() {
   return (
     <>
-      <section className="grid gap-3 md:grid-cols-3">
+      <section
+        className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border"
+        style={{ background: "var(--color-border)" }}
+      >
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="bf-panel animate-pulse p-3">
-            <div className="h-3 w-28 rounded bg-slate-200" />
-            <div className="mt-3 h-8 w-12 rounded bg-slate-200" />
+          <div key={i} className="flex flex-col px-5 py-3" style={{ background: "var(--color-surface)" }}>
+            <div className="h-2.5 w-28 animate-pulse rounded" style={{ background: "var(--color-surface-2)" }} />
+            <div className="mt-2 h-7 w-10 animate-pulse rounded" style={{ background: "var(--color-surface-2)" }} />
           </div>
         ))}
       </section>
       <section className="bf-defer mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_390px]">
         <div className="animate-pulse space-y-4">
-          <div className="aspect-video rounded-md bg-slate-200" />
-          <div className="bf-panel h-32 bg-slate-50 p-4" />
+          <div className="aspect-video rounded-xl" style={{ background: "var(--color-surface-2)" }} />
+          <div className="h-32 rounded-xl border p-4" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }} />
         </div>
-        <div className="animate-pulse space-y-3">
+        <div className="animate-pulse space-y-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-20 rounded-md border border-slate-200 bg-slate-100" />
+            <div key={i} className="h-20 rounded-xl border" style={{ borderColor: "var(--color-border)", background: "var(--color-surface-2)" }} />
           ))}
         </div>
       </section>
@@ -99,13 +119,21 @@ export default async function GrabacionesPage({ searchParams }: PageProps) {
       title="Grabaciones"
       description="Reproduce sesiones reales y revisa qué hizo el visitante durante la visita."
     >
-      {service ? (
+      {service && (
         <div className="mb-4">
-          <Link href="/grabaciones" className="bf-chip border-amber-200 bg-amber-50 text-amber-800">
-            Servicio: {humanValue(service)} x
+          <Link
+            href="/grabaciones"
+            className="bf-chip transition-colors"
+            style={{
+              borderColor: "oklch(88% 0.07 75)",
+              background: "var(--color-warn-bg)",
+              color: "var(--color-warn-text)",
+            }}
+          >
+            Servicio: {humanValue(service)} ×
           </Link>
         </div>
-      ) : null}
+      )}
 
       <Suspense fallback={<GrabacionesLoading />}>
         <GrabacionesContent p={{ service, selectedSessionId }} />
@@ -113,14 +141,3 @@ export default async function GrabacionesPage({ searchParams }: PageProps) {
     </AppShell>
   );
 }
-
-
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="bf-panel p-3">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-2 font-mono text-2xl font-semibold text-slate-950">{value}</p>
-    </div>
-  );
-}
-

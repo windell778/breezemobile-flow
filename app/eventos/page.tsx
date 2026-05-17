@@ -23,63 +23,130 @@ export default async function EventosPage({ searchParams }: PageProps) {
     eventName,
     count: allEvents.filter((event) => event.event_name === eventName).length,
   }));
-  const visibleEvents = selectedEvent ? allEvents.filter((event) => event.event_name === selectedEvent) : allEvents;
+  const visibleEvents = selectedEvent
+    ? allEvents.filter((event) => event.event_name === selectedEvent)
+    : allEvents;
 
   return (
     <AppShell
       title="Eventos"
-      description="Revisa las acciones capturadas en la web: páginas vistas, clicks en servicios y clicks a WhatsApp."
+      description="Acciones capturadas: páginas vistas, clicks en servicios y clicks a WhatsApp."
     >
-      <section className="grid gap-3 md:grid-cols-3">
+      {/* Cards de conteo por tipo */}
+      <section
+        className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border"
+        style={{ background: "var(--color-border)", borderColor: "var(--color-border)" }}
+      >
         {counts.map((item) => (
           <Link
             key={item.eventName}
             href={`/eventos?event=${item.eventName}`}
-            className={`bf-panel bf-panel-hover p-3 ${
-              selectedEvent === item.eventName ? "border-slate-950 ring-2 ring-slate-100" : "border-slate-200"
-            }`}
+            className="flex flex-col px-5 py-4 transition-colors hover:bg-[var(--color-surface-2)]"
+            style={{
+              background: selectedEvent === item.eventName ? "var(--color-primary-bg)" : "var(--color-surface)",
+            }}
           >
-            <p className="text-sm text-slate-500">{eventLabels[item.eventName]}</p>
-            <p className="mt-2 font-mono text-3xl font-semibold text-slate-950">{item.count}</p>
-            <p className="mt-2 font-mono text-xs text-slate-400">{item.eventName}</p>
+            <span
+              className="text-[11px] font-medium"
+              style={{ color: selectedEvent === item.eventName ? "var(--color-primary)" : "var(--color-text-3)" }}
+            >
+              {eventLabels[item.eventName]}
+            </span>
+            <span
+              className="mt-1.5 text-3xl font-bold tracking-tight"
+              style={{ color: selectedEvent === item.eventName ? "var(--color-primary)" : "var(--color-text-1)" }}
+            >
+              {item.count}
+            </span>
+            <span className="mt-1 font-mono text-[10px]" style={{ color: "var(--color-text-3)" }}>
+              {item.eventName}
+            </span>
           </Link>
         ))}
       </section>
 
-      {selectedEvent ? (
+      {/* Chip activo */}
+      {selectedEvent && (
         <div className="mt-4">
-          <Link href="/eventos" className="bf-chip border-amber-200 bg-amber-50 text-amber-800">
-            Evento: {humanValue(selectedEvent)} x
+          <Link
+            href="/eventos"
+            className="bf-chip transition-colors"
+            style={{
+              borderColor: "oklch(88% 0.07 75)",
+              background: "var(--color-warn-bg)",
+              color: "var(--color-warn-text)",
+            }}
+          >
+            Evento: {humanValue(selectedEvent)} ×
           </Link>
         </div>
-      ) : null}
+      )}
 
+      {/* Tabla de eventos */}
       {visibleEvents.length === 0 ? (
         <EmptyState message="No hay eventos que coincidan con el filtro seleccionado." />
       ) : (
-        <section className="bf-panel bf-defer mt-4 overflow-hidden">
-          <div className="grid border-b border-slate-200 bg-slate-50/80 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 md:grid-cols-[170px_1fr_1fr_1fr_1fr]">
-            <span>Fecha</span><span>Evento</span><span>Visitante / sesión</span><span>Página</span><span>CTA</span>
+        <section
+          className="mt-4 overflow-hidden rounded-xl border bf-defer"
+          style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+        >
+          {/* Cabecera */}
+          <div
+            className="hidden grid-cols-[150px_1fr_1fr_1fr_1fr] border-b px-5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] md:grid"
+            style={{
+              background: "var(--color-surface-2)",
+              borderColor: "var(--color-border)",
+              color: "var(--color-text-3)",
+            }}
+          >
+            <span>Fecha</span>
+            <span>Evento</span>
+            <span>Visitante / sesión</span>
+            <span>Página</span>
+            <span>CTA</span>
           </div>
+
           {visibleEvents.map((event) => (
-            <div key={event.event_id} className="bf-row grid gap-2 px-3 py-2.5 text-sm md:grid-cols-[170px_1fr_1fr_1fr_1fr]">
-              <span className="text-slate-500">{formatDateTime(event.timestamp)}</span>
+            <div
+              key={event.event_id}
+              className="grid gap-2 border-b px-5 py-3 text-sm transition-colors hover:bg-[var(--color-surface-2)] md:grid-cols-[150px_1fr_1fr_1fr_1fr]"
+              style={{ borderColor: "var(--color-border)" }}
+            >
+              <span className="font-mono text-xs" style={{ color: "var(--color-text-3)" }}>
+                {formatDateTime(event.timestamp)}
+              </span>
               <span>
-                <span className="font-medium text-slate-950">{eventLabels[event.event_name]}</span>
-                <small className="block font-mono text-xs text-slate-400">{event.event_name}</small>
+                <span className="font-medium" style={{ color: "var(--color-text-1)" }}>
+                  {eventLabels[event.event_name]}
+                </span>
+                <small className="block font-mono text-[10px]" style={{ color: "var(--color-text-3)" }}>
+                  {event.event_name}
+                </small>
               </span>
               <Link
                 href={`/visitantes/${event.visitor_id}?session=${event.session_id}&tab=eventos`}
                 title={`${event.visitor_id} / ${event.session_id}`}
-                className="font-mono font-medium text-blue-700 hover:underline"
+                className="font-mono text-xs font-medium transition-colors hover:underline"
+                style={{ color: "var(--color-primary-text)" }}
               >
                 {shortId(event.visitor_id)} / {shortId(event.session_id)}
               </Link>
-              <span className="text-slate-600">{event.page_path}<small className="block text-slate-400">{humanValue(event.service)}</small></span>
-              <span className="text-slate-600">
+              <span style={{ color: "var(--color-text-2)" }}>
+                {event.page_path}
+                <small className="block text-[10px]" style={{ color: "var(--color-text-3)" }}>
+                  {humanValue(event.service)}
+                </small>
+              </span>
+              <span style={{ color: "var(--color-text-2)" }}>
                 {event.cta_text || "Sin dato"}
-                <small className="block text-slate-400">{event.cta_location || "Sin dato"}</small>
-                <Link href={`/sesiones?event=${event.event_name}`} className="mt-1 block text-xs font-medium text-blue-700 hover:underline">
+                <small className="block text-[10px]" style={{ color: "var(--color-text-3)" }}>
+                  {event.cta_location || "Sin dato"}
+                </small>
+                <Link
+                  href={`/sesiones?event=${event.event_name}`}
+                  className="mt-1 block text-xs font-medium transition-colors hover:underline"
+                  style={{ color: "var(--color-primary-text)" }}
+                >
                   Ver sesiones con este evento
                 </Link>
               </span>
