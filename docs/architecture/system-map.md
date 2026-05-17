@@ -26,9 +26,10 @@ SITIO WEB (HubSpot)
               └──▶ PostHog  (vía posthog.capture + posthog.register)
                       ├── almacena eventos con todas las properties
                       ├── graba la sesión con rrweb
-                      └── dispara webhook cuando termina una grabación
+                      └── expone grabaciones vía API en tiempo real
                                 │
                         PostHog API  [solo acceso servidor]
+                        (webhook recording-ended → R2: flujo futuro, hoy inactivo)
                                 │
                         DataAdapter  (lib/data/adapter.ts)
                         ├── MockAdapter     DATA_SOURCE=mock
