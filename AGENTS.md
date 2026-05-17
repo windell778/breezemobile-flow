@@ -16,16 +16,23 @@ visitor profiles.
 Full architecture and decisions: `docs/architecture/plan.md`
 Full change protocol: `docs/development/change-protocol.md`
 
+**Entry-layer documentation (read first if new to this project):**
+- `docs/development/ai-handoff-guide.md` — condensed rules and reading order for IA or new dev
+- `README.md` — what the project is, how to run it, routes, critical rules
+- `docs/architecture/system-map.md` — full data flow from site to UI
+- `docs/development/where-to-change-what.md` — which files to touch per change type
+
 ---
 
 ## Before making any change
 
 Read in this order:
 
-1. `docs/product/phases.md` — confirm the task belongs to the current phase.
-2. `docs/tracking/tracking-contract.md` — source of truth for events and attribution.
-3. `docs/architecture/plan.md` — data model, adapter design, recording strategy.
-4. `docs/product/scope-and-non-goals.md` — what must not be built.
+1. `docs/development/ai-handoff-guide.md` — start here if you're new.
+2. `docs/product/phases.md` — confirm the task belongs to the current phase.
+3. `docs/tracking/tracking-contract.md` — source of truth for events and attribution.
+4. `docs/architecture/plan.md` — data model, adapter design, recording strategy.
+5. `docs/product/scope-and-non-goals.md` — what must not be built.
 
 If the task touches recordings, replay, rrweb, PostHog snapshots,
 `/api/recordings/*`, R2 storage, or `lib/posthog/recordings.ts`, read
@@ -40,6 +47,9 @@ or which elements should be hidden/obscured in recordings, read
 
 If the task touches the DataAdapter, HogQL queries, or session construction,
 also read `docs/architecture/data-flow-and-adapter.md`.
+
+If the task touches UI redesign or visual components, also read
+`docs/product/interface-map-v1.md`.
 
 Confirm mentally before touching code:
 
