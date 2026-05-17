@@ -1,32 +1,42 @@
 import { NavLinks } from "@/components/layout/NavLinks";
 
 export function Topbar() {
+  const isPostHog = process.env.DATA_SOURCE === "posthog";
+
   return (
-    <header className="sticky top-0 z-20 -mx-4 mb-5 border-b border-slate-200 bg-background/95 px-4 py-2 backdrop-blur md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <header
+      className="sticky top-0 z-20 -mx-5 mb-0 border-b px-5 py-2.5 md:-mx-8 md:px-8 lg:hidden"
+      style={{
+        background: "var(--color-surface)",
+        borderColor: "var(--color-border)",
+      }}
+    >
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="grid h-8 w-8 place-items-center rounded-md border border-slate-200 bg-white font-mono text-xs font-semibold text-slate-900 lg:hidden">BM</div>
+          <div
+            className="flex h-7 w-7 items-center justify-center rounded-md"
+            style={{ background: "var(--color-primary)" }}
+          >
+            <span className="text-[10px] font-bold text-white">BM</span>
+          </div>
           <div>
-            <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Workspace</p>
-            <p className="text-sm font-semibold text-slate-950">BreezeMobile</p>
+            <p className="text-[11px] font-semibold" style={{ color: "var(--color-text-1)" }}>
+              BreezeMobile
+            </p>
           </div>
         </div>
-        <div className="flex flex-1 items-center justify-end gap-3">
-          <form action="/sesiones" className="hidden min-w-44 flex-1 md:block">
-            <input
-              name="q"
-              placeholder="Buscar en sesiones..."
-              className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
-            />
-          </form>
-          <div className="hidden h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 sm:flex">Últimos 7 días</div>
-          <div className="flex h-9 items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 text-xs font-medium text-emerald-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Tracking activo
-          </div>
-        </div>
+        <span
+          className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+          style={
+            isPostHog
+              ? { background: "var(--color-signal-bg)", color: "var(--color-signal-text)" }
+              : { background: "var(--color-surface-2)", color: "var(--color-text-2)" }
+          }
+        >
+          {isPostHog ? "PostHog" : "Mock"}
+        </span>
       </div>
-      <div className="mt-3 lg:hidden">
+      <div className="mt-2">
         <NavLinks compact />
       </div>
     </header>

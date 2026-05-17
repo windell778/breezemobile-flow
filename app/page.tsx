@@ -2,7 +2,6 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
-import { MetricCard } from "@/components/ui/MetricCard";
 import { SourceBadge } from "@/components/ui/SourceBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { RecentSessions } from "@/components/dashboard/RecentSessions";
@@ -26,46 +25,74 @@ export default async function Home() {
   return (
     <AppShell
       title="Resumen general"
-      description="Comportamiento, atribución e intención de visitantes anónimos con datos operativos recientes."
+      description="Comportamiento, atribución e intención de visitantes anónimos."
     >
-      {/* KPIs */}
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Link href="/sesiones" className="block transition hover:-translate-y-0.5">
-          <MetricCard
-            label="Sesiones capturadas"
-            value={metrics.sessions}
-            detail={`${metrics.visitors} visitantes anónimos.`}
-          />
-        </Link>
-        <Link href="/eventos?event=whatsapp_click" className="block transition hover:-translate-y-0.5">
-          <MetricCard
-            label="Clicks a WhatsApp"
-            value={metrics.whatsappClicks}
-            detail="Señal de alta intención (anónima)."
-          />
-        </Link>
-        <Link href="/eventos?event=service_click" className="block transition hover:-translate-y-0.5">
-          <MetricCard
-            label="Clicks en servicios"
-            value={metrics.serviceClicks}
-            detail="Interés declarado por servicio."
-          />
-        </Link>
-        <Link href="/grabaciones" className="block transition hover:-translate-y-0.5">
-          <MetricCard
-            label="Con grabación"
-            value={`${metrics.replayRate}%`}
-            detail={`${metrics.recordings} sesiones con grabación.`}
-          />
-        </Link>
+      {/* KPI bar — franja horizontal, no cards gigantes */}
+      <section
+        className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border lg:grid-cols-4"
+        style={{ background: "var(--color-border)", borderColor: "var(--color-border)" }}
+      >
+        {[
+          {
+            label: "Sesiones",
+            value: metrics.sessions,
+            sub: `${metrics.visitors} visitantes`,
+            href: "/sesiones",
+          },
+          {
+            label: "WhatsApp",
+            value: metrics.whatsappClicks,
+            sub: "Señal de intención",
+            href: "/eventos?event=whatsapp_click",
+          },
+          {
+            label: "Servicios",
+            value: metrics.serviceClicks,
+            sub: "Clicks declarados",
+            href: "/eventos?event=service_click",
+          },
+          {
+            label: "Con grabación",
+            value: `${metrics.replayRate}%`,
+            sub: `${metrics.recordings} sesiones`,
+            href: "/grabaciones",
+          },
+        ].map(({ label, value, sub, href }) => (
+          <Link
+            key={label}
+            href={href}
+            className="group flex flex-col px-5 py-4 transition-colors hover:bg-[var(--color-surface-2)]"
+            style={{ background: "var(--color-surface)" }}
+          >
+            <span className="text-[11px] font-medium" style={{ color: "var(--color-text-3)" }}>
+              {label}
+            </span>
+            <span
+              className="mt-1.5 text-3xl font-bold tracking-tight"
+              style={{ color: "var(--color-text-1)" }}
+            >
+              {value}
+            </span>
+            <span className="mt-1 text-xs" style={{ color: "var(--color-text-3)" }}>
+              {sub}
+            </span>
+          </Link>
+        ))}
       </section>
 
-      <p className="mt-2 text-xs text-slate-400">
+      <p className="mt-2 text-xs" style={{ color: "var(--color-text-3)" }}>
         Métricas agregadas · {timeAgo(metrics.cached_at)} · caché 15 min
       </p>
 
       {metricWarnings.length > 0 && (
-        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <div
+          className="mt-3 rounded-lg border px-4 py-3 text-sm"
+          style={{
+            background: "var(--color-warn-bg)",
+            borderColor: "oklch(88% 0.07 75)",
+            color: "var(--color-warn-text)",
+          }}
+        >
           <p className="font-semibold">Anomalías detectadas:</p>
           <ul className="mt-1 list-inside list-disc space-y-0.5">
             {metricWarnings.map((w) => (
@@ -75,57 +102,111 @@ export default async function Home() {
         </div>
       )}
 
-      {/* Funnel + Quick read */}
-      <section className="mt-5 grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-        {/* Observable funnel */}
-        <div className="bf-panel p-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-base font-semibold text-slate-950">Embudo de señal</h2>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Solo se muestran etapas respaldadas por el tracking actual.
-              </p>
-            </div>
-            <Link href="/eventos" className="bf-control text-slate-600 hover:bg-slate-50">
-              Ver eventos
-            </Link>
+      {/* Embudo de señal */}
+      <section
+        className="mt-5 overflow-hidden rounded-xl border"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+      >
+        <div
+          className="flex items-center justify-between border-b px-5 py-3"
+          style={{ borderColor: "var(--color-border)" }}
+        >
+          <div>
+            <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
+              Embudo de señal
+            </h2>
+            <p className="text-xs" style={{ color: "var(--color-text-3)" }}>
+              Etapas respaldadas por el tracking actual.
+            </p>
           </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-4">
-            {[
-              { step: "Fuente", label: "Anuncio u orgánico", href: "/campanas" },
-              { step: "Servicio", label: "Página visitada", href: "/servicios" },
-              { step: "Sesión", label: "Capturada", href: "/sesiones" },
-              { step: "Intención", label: "WhatsApp click", href: "/eventos?event=whatsapp_click" },
-            ].map(({ step, label, href }, index) => (
-              <Link
-                key={step}
-                href={href}
-                className="group rounded-md border border-slate-200 bg-slate-50 p-3 transition hover:border-slate-300 hover:bg-white"
-              >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                  Paso {index + 1}
-                </p>
-                <p className="mt-1.5 text-sm font-semibold text-slate-950">{step}</p>
-                <p className="mt-0.5 text-xs text-slate-500">{label}</p>
-              </Link>
-            ))}
-          </div>
+          <Link
+            href="/eventos"
+            className="text-xs font-medium transition-colors"
+            style={{ color: "var(--color-text-2)" }}
+          >
+            Ver eventos →
+          </Link>
         </div>
+        <div className="flex divide-x" style={{ borderColor: "var(--color-border)" }}>
+          {[
+            { step: "Fuente", detail: "Anuncio u orgánico", href: "/campanas", value: null },
+            { step: "Servicio", detail: "Página visitada", href: "/servicios", value: null },
+            {
+              step: "Sesión",
+              detail: "Capturada",
+              href: "/sesiones",
+              value: metrics.sessions,
+            },
+            {
+              step: "Intención",
+              detail: "WhatsApp click",
+              href: "/eventos?event=whatsapp_click",
+              value: metrics.whatsappClicks,
+            },
+          ].map(({ step, detail, href, value }) => (
+            <Link
+              key={step}
+              href={href}
+              className="group relative flex-1 px-5 py-4 transition-colors hover:bg-[var(--color-surface-2)]"
+            >
+              <p
+                className="text-[10px] font-semibold uppercase tracking-[0.14em]"
+                style={{ color: "var(--color-text-3)" }}
+              >
+                {step}
+              </p>
+              {value !== null && (
+                <p
+                  className="mt-1 text-2xl font-bold tracking-tight"
+                  style={{ color: "var(--color-text-1)" }}
+                >
+                  {value}
+                </p>
+              )}
+              <p className="mt-0.5 text-xs" style={{ color: "var(--color-text-2)" }}>
+                {detail}
+              </p>
+            </Link>
+          ))}
+        </div>
+      </section>
 
-        {/* Quick read */}
-        <div className="bf-panel p-4">
-          <h2 className="text-base font-semibold text-slate-950">Lectura rápida</h2>
-          <div className="mt-3 space-y-2 text-sm">
+      {/* Lectura rápida + Sesiones recientes */}
+      <section className="mt-4 grid gap-4 xl:grid-cols-[1fr_1.4fr]">
+        {/* Lectura rápida */}
+        <div
+          className="overflow-hidden rounded-xl border"
+          style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+        >
+          <div
+            className="border-b px-5 py-3"
+            style={{ borderColor: "var(--color-border)" }}
+          >
+            <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
+              Lectura rápida
+            </h2>
+          </div>
+          <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
             {metrics.topCampaign ? (
               <Link
                 href={`/sesiones?campaign=${encodeURIComponent(metrics.topCampaign.name)}`}
-                className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2.5 hover:bg-slate-50"
+                className="flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-[var(--color-surface-2)]"
               >
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-slate-400">Campaña con más señal</p>
-                  <p className="mt-0.5 font-medium text-slate-950">{metrics.topCampaign.name}</p>
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+                    style={{ color: "var(--color-text-3)" }}
+                  >
+                    Campaña con más señal
+                  </p>
+                  <p className="mt-0.5 text-sm font-medium" style={{ color: "var(--color-text-1)" }}>
+                    {metrics.topCampaign.name}
+                  </p>
                 </div>
-                <span className="text-xs font-semibold text-emerald-600">
+                <span
+                  className="text-xs font-semibold"
+                  style={{ color: "var(--color-signal-text)" }}
+                >
                   {metrics.topCampaign.whatsapp_clicks} WA
                 </span>
               </Link>
@@ -134,13 +215,23 @@ export default async function Home() {
             {metrics.topService ? (
               <Link
                 href={`/sesiones?service=${metrics.topService.service}`}
-                className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2.5 hover:bg-slate-50"
+                className="flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-[var(--color-surface-2)]"
               >
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-slate-400">Servicio más activo</p>
-                  <p className="mt-0.5 font-medium text-slate-950">{humanValue(metrics.topService.service)}</p>
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+                    style={{ color: "var(--color-text-3)" }}
+                  >
+                    Servicio más activo
+                  </p>
+                  <p className="mt-0.5 text-sm font-medium" style={{ color: "var(--color-text-1)" }}>
+                    {humanValue(metrics.topService.service)}
+                  </p>
                 </div>
-                <span className="text-xs font-semibold text-blue-600">
+                <span
+                  className="text-xs font-semibold"
+                  style={{ color: "var(--color-primary-text)" }}
+                >
                   {metrics.topService.whatsapp_clicks} WA
                 </span>
               </Link>
@@ -149,50 +240,32 @@ export default async function Home() {
             {topHealthIssue ? (
               <Link
                 href="/tracking"
-                className="flex items-center justify-between rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 hover:bg-amber-100"
+                className="flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-[var(--color-warn-bg)]"
               >
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.12em] text-amber-600">Tracking</p>
-                  <p className="mt-0.5 font-medium text-amber-900">{topHealthIssue.title}</p>
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+                    style={{ color: "var(--color-warn-text)" }}
+                  >
+                    Tracking
+                  </p>
+                  <p className="mt-0.5 text-sm font-medium" style={{ color: "var(--color-text-1)" }}>
+                    {topHealthIssue.title}
+                  </p>
                 </div>
                 <StatusBadge label={topHealthIssue.severity} />
               </Link>
             ) : null}
           </div>
         </div>
-      </section>
 
-      {/* Recent sessions + Tracking Health */}
-      <section className="mt-4 grid gap-4 xl:grid-cols-[1.3fr_1fr]">
+        {/* Sesiones recientes */}
         <RecentSessions sessions={recentSessions} />
-
-        <div className="bf-panel overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-            <h2 className="text-base font-semibold text-slate-950">Estado del tracking</h2>
-            <Link href="/tracking" className="text-xs font-medium text-slate-500 hover:text-slate-900">
-              Ver todo →
-            </Link>
-          </div>
-          <div className="divide-y divide-slate-100">
-            {trackingHealth.slice(0, 4).map((item) => (
-              <Link
-                key={item.id}
-                href="/tracking"
-                className="flex items-start justify-between gap-3 px-4 py-3 transition hover:bg-slate-50"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-950">{item.title}</p>
-                  <p className="mt-0.5 text-xs text-slate-500 leading-4">{item.detail}</p>
-                </div>
-                <StatusBadge label={item.severity} />
-              </Link>
-            ))}
-          </div>
-        </div>
       </section>
 
-      {/* Top campaigns + services */}
-      <section className="mt-4 grid gap-4 xl:grid-cols-2">
+      {/* Estado del tracking + Top campañas + Top servicios */}
+      <section className="mt-4 grid gap-4 xl:grid-cols-3">
+        <TrackingHealthSection items={trackingHealth.slice(0, 4)} />
         <CampaignsSection workspaceId={workspaceId} />
         <ServicesSection workspaceId={workspaceId} />
       </section>
@@ -200,30 +273,102 @@ export default async function Home() {
   );
 }
 
+function TrackingHealthSection({
+  items,
+}: {
+  items: Array<{ id: string; title: string; detail: string; severity: string }>;
+}) {
+  return (
+    <div
+      className="overflow-hidden rounded-xl border"
+      style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+    >
+      <div
+        className="flex items-center justify-between border-b px-5 py-3"
+        style={{ borderColor: "var(--color-border)" }}
+      >
+        <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
+          Estado del tracking
+        </h2>
+        <Link
+          href="/tracking"
+          className="text-xs font-medium transition-colors"
+          style={{ color: "var(--color-text-2)" }}
+        >
+          Ver todo →
+        </Link>
+      </div>
+      <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
+        {items.map((item) => (
+          <Link
+            key={item.id}
+            href="/tracking"
+            className="flex items-start justify-between gap-3 px-5 py-3 transition-colors hover:bg-[var(--color-surface-2)]"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-medium" style={{ color: "var(--color-text-1)" }}>
+                {item.title}
+              </p>
+              <p
+                className="mt-0.5 text-xs leading-4"
+                style={{ color: "var(--color-text-2)" }}
+              >
+                {item.detail}
+              </p>
+            </div>
+            <StatusBadge label={item.severity} />
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 async function CampaignsSection({ workspaceId }: { workspaceId: string }) {
   const campaigns = await getAdapter().getCampaignSummaries(workspaceId);
   return (
-    <div className="bf-panel overflow-hidden">
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-        <h2 className="text-base font-semibold text-slate-950">Campañas / señal</h2>
-        <Link href="/campanas" className="text-xs font-medium text-slate-500 hover:text-slate-900">
+    <div
+      className="overflow-hidden rounded-xl border"
+      style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+    >
+      <div
+        className="flex items-center justify-between border-b px-5 py-3"
+        style={{ borderColor: "var(--color-border)" }}
+      >
+        <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
+          Campañas
+        </h2>
+        <Link
+          href="/campanas"
+          className="text-xs font-medium transition-colors"
+          style={{ color: "var(--color-text-2)" }}
+        >
           Ver todas →
         </Link>
       </div>
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
         {campaigns.slice(0, 4).map((campaign) => (
           <Link
             key={`${campaign.source}-${campaign.name}`}
             href={`/sesiones?campaign=${encodeURIComponent(campaign.name)}`}
-            className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-slate-50"
+            className="flex items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-[var(--color-surface-2)]"
           >
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-slate-950">{campaign.name}</p>
-              <p className="mt-0.5 text-xs text-slate-500">{campaign.medium || "—"}</p>
+              <p className="truncate text-sm font-medium" style={{ color: "var(--color-text-1)" }}>
+                {campaign.name}
+              </p>
+              <p className="mt-0.5 text-xs" style={{ color: "var(--color-text-3)" }}>
+                {campaign.medium || "sin medio"}
+              </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <SourceBadge source={campaign.source} />
-              <span className="text-xs font-semibold text-emerald-600">{campaign.whatsapp_clicks} WA</span>
+              <span
+                className="text-xs font-semibold"
+                style={{ color: "var(--color-signal-text)" }}
+              >
+                {campaign.whatsapp_clicks} WA
+              </span>
             </div>
           </Link>
         ))}
@@ -235,27 +380,47 @@ async function CampaignsSection({ workspaceId }: { workspaceId: string }) {
 async function ServicesSection({ workspaceId }: { workspaceId: string }) {
   const services = await getAdapter().getServiceSummaries(workspaceId);
   return (
-    <div className="bf-panel overflow-hidden">
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-        <h2 className="text-base font-semibold text-slate-950">Servicios / señal</h2>
-        <Link href="/servicios" className="text-xs font-medium text-slate-500 hover:text-slate-900">
+    <div
+      className="overflow-hidden rounded-xl border"
+      style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+    >
+      <div
+        className="flex items-center justify-between border-b px-5 py-3"
+        style={{ borderColor: "var(--color-border)" }}
+      >
+        <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
+          Servicios
+        </h2>
+        <Link
+          href="/servicios"
+          className="text-xs font-medium transition-colors"
+          style={{ color: "var(--color-text-2)" }}
+        >
           Ver todos →
         </Link>
       </div>
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
         {services.slice(0, 4).map((page) => (
           <Link
             key={page.path}
             href={`/sesiones?service=${page.service}`}
-            className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-slate-50"
+            className="flex items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-[var(--color-surface-2)]"
           >
             <div className="min-w-0">
-              <p className="text-sm font-medium text-slate-950">{humanValue(page.service)}</p>
-              <p className="mt-0.5 text-xs text-slate-500">{page.path}</p>
+              <p className="text-sm font-medium" style={{ color: "var(--color-text-1)" }}>
+                {humanValue(page.service)}
+              </p>
+              <p className="mt-0.5 text-xs" style={{ color: "var(--color-text-3)" }}>
+                {page.path}
+              </p>
             </div>
             <div className="shrink-0 text-right">
-              <p className="text-sm font-semibold text-slate-700">{page.sessions} ses.</p>
-              <p className="text-xs text-emerald-600">{page.whatsapp_clicks} WA</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--color-text-2)" }}>
+                {page.sessions} ses.
+              </p>
+              <p className="text-xs font-medium" style={{ color: "var(--color-signal-text)" }}>
+                {page.whatsapp_clicks} WA
+              </p>
             </div>
           </Link>
         ))}

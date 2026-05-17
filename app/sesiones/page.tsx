@@ -4,9 +4,9 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { SourceBadge } from "@/components/ui/SourceBadge";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { IntentBadge } from "@/components/ui/IntentBadge";
 import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
-import { formatDateTime, formatDuration, humanValue, shortId } from "@/lib/labels";
+import { formatDateTime, humanValue, shortId } from "@/lib/labels";
 import { mainEventLabel, sessionHasEvent } from "@/lib/analytics";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { Session, SessionFilters, Source, ServiceKey, EventName } from "@/lib/data/types";
@@ -31,12 +31,6 @@ const filterChips = [
   { key: "direct", label: "Direct" },
   { key: "replay", label: "Con grabación" },
 ];
-
-const intentBorder: Record<string, string> = {
-  Alta: "border-l-emerald-500",
-  Media: "border-l-amber-400",
-  Baja: "border-l-slate-300",
-};
 
 type TableParams = {
   filter: string;
@@ -82,9 +76,7 @@ async function SessionsTable({ p }: { p: TableParams }) {
   else if (p.filter === "service") adapterFilters.eventName = "service_click";
   if (p.event) adapterFilters.eventName = p.event as EventName;
 
-  // Fetch limit+1 to detect whether a next page exists without a separate
-  // count query. JS post-filters (sin_interaccion, campaign) are rare enough
-  // that occasional off-by-one is acceptable at V0 volumes.
+  // Fetch limit+1 to detect next page without a separate count query.
   adapterFilters.limit = p.limit + 1;
   adapterFilters.offset = (p.page - 1) * p.limit;
 
@@ -109,46 +101,95 @@ async function SessionsTable({ p }: { p: TableParams }) {
 
   return (
     <>
-      <section className="grid gap-3 md:grid-cols-4">
-        <MiniMetric label="Sesiones esta página" value={display.length} />
-        <MiniMetric label="Clicks a WhatsApp" value={whatsappCount} />
-        <MiniMetric label="Con grabación" value={replayCount} />
-        <MiniMetric label="Página" value={p.page} />
+      {/* Mini-métricas de la página actual */}
+      <section
+        className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border md:grid-cols-4"
+        style={{ background: "var(--color-border)", borderColor: "var(--color-border)" }}
+      >
+        {[
+          { label: "Sesiones esta página", value: display.length },
+          { label: "Clicks a WhatsApp", value: whatsappCount },
+          { label: "Con grabación", value: replayCount },
+          { label: "Página", value: p.page },
+        ].map(({ label, value }) => (
+          <div
+            key={label}
+            className="flex flex-col px-4 py-3"
+            style={{ background: "var(--color-surface)" }}
+          >
+            <span className="text-[10px] font-medium" style={{ color: "var(--color-text-3)" }}>
+              {label}
+            </span>
+            <span className="mt-1 text-2xl font-bold tracking-tight" style={{ color: "var(--color-text-1)" }}>
+              {value}
+            </span>
+          </div>
+        ))}
       </section>
 
-      <section className="bf-panel bf-defer mt-4 overflow-hidden">
-        <div className="hidden grid-cols-[150px_180px_1.1fr_1fr_1fr_130px] border-b border-slate-200 bg-slate-50/80 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 xl:grid">
-          <span>Inicio</span>
-          <span>Sesión</span>
+      {/* Tabla de sesiones */}
+      <section
+        className="mt-4 overflow-hidden rounded-xl border bf-defer"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+      >
+        {/* Cabecera de columnas — solo desktop */}
+        <div
+          className="hidden grid-cols-[80px_1fr_120px_160px_120px] border-b px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] xl:grid"
+          style={{
+            background: "var(--color-surface-2)",
+            borderColor: "var(--color-border)",
+            color: "var(--color-text-3)",
+          }}
+        >
+          <span>Fecha</span>
           <span>Visitante / servicio</span>
           <span>Fuente</span>
-          <span>Atribución</span>
+          <span>Campaña</span>
           <span>Actividad</span>
         </div>
+
         {display.map((session) => (
           <SessionRow key={session.session_id} session={session} serviceFilter={p.service} />
         ))}
 
-        {/* Pagination controls inside the panel */}
-        <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-4 py-3">
-          <p className="text-sm text-slate-500">
+        {/* Paginación */}
+        <div
+          className="flex items-center justify-between border-t px-4 py-3"
+          style={{
+            background: "var(--color-surface-2)",
+            borderColor: "var(--color-border)",
+          }}
+        >
+          <p className="text-sm" style={{ color: "var(--color-text-2)" }}>
             Página {p.page} · {display.length} sesión{display.length !== 1 ? "es" : ""}
             {hasNextPage ? " · hay más" : ""}
           </p>
           <div className="flex items-center gap-2">
             {p.page > 1 ? (
-              <Link href={buildPageHref(p, p.page - 1)} className="bf-control text-slate-700 hover:bg-slate-50">
+              <Link
+                href={buildPageHref(p, p.page - 1)}
+                className="bf-control transition-colors hover:bg-[var(--color-surface)]"
+                style={{ color: "var(--color-text-1)" }}
+              >
                 ← Anterior
               </Link>
             ) : (
-              <span className="bf-control cursor-not-allowed text-slate-300">← Anterior</span>
+              <span className="bf-control cursor-not-allowed" style={{ color: "var(--color-text-3)" }}>
+                ← Anterior
+              </span>
             )}
             {hasNextPage ? (
-              <Link href={buildPageHref(p, p.page + 1)} className="bf-control text-slate-700 hover:bg-slate-50">
+              <Link
+                href={buildPageHref(p, p.page + 1)}
+                className="bf-control transition-colors hover:bg-[var(--color-surface)]"
+                style={{ color: "var(--color-text-1)" }}
+              >
                 Siguiente →
               </Link>
             ) : (
-              <span className="bf-control cursor-not-allowed text-slate-300">Siguiente →</span>
+              <span className="bf-control cursor-not-allowed" style={{ color: "var(--color-text-3)" }}>
+                Siguiente →
+              </span>
             )}
           </div>
         </div>
@@ -163,52 +204,90 @@ function SessionRow({ session, serviceFilter }: { session: Session; serviceFilte
     serviceFilter &&
     session.service !== serviceFilter &&
     session.events.some((e) => e.service === serviceFilter);
+
   return (
     <article
-      className={`bf-row relative border-l-2 xl:grid xl:grid-cols-[150px_180px_1.1fr_1fr_1fr_130px] xl:items-center ${
-        intentBorder[session.intent_level] ?? "border-l-slate-200"
-      }`}
+      className="relative flex items-start gap-4 border-b px-4 py-3.5 transition-colors hover:bg-[var(--color-surface-2)] xl:grid xl:grid-cols-[80px_1fr_120px_160px_120px] xl:items-center"
+      style={{ borderColor: "var(--color-border)" }}
     >
+      {/* Stretched link — Visitor Intelligence */}
       <Link
         href={`/visitantes/${session.visitor_id}?session=${session.session_id}`}
-        aria-label={`Ver visitante ${shortId(session.visitor_id)} · sesión ${shortId(session.session_id)}`}
+        aria-label={`Ver visitante ${shortId(session.visitor_id)}`}
         className="absolute inset-0 z-10"
       />
-      <div className="pointer-events-none grid gap-3 px-3 py-2.5 text-sm xl:contents">
-        <div className="text-slate-500">
-          <p>{formatDateTime(session.timestamp)}</p>
-          <p className="mt-1 font-mono text-xs">{formatDuration(session.duration)}</p>
-        </div>
-        <div>
-          <p className="font-mono font-semibold text-cyan-700">{shortId(session.session_id)}</p>
-          <p className="mt-1 text-xs text-slate-500">{session.events.length} eventos</p>
-        </div>
-        <div>
-          <p className="font-mono font-medium text-slate-950">{shortId(session.visitor_id)}</p>
-          <p className="mt-1 text-slate-600">{humanValue(session.service)} · {session.page_path}</p>
-          {includesFilteredService && (
-            <p className="mt-1 text-xs text-amber-600">Incluye eventos de {humanValue(serviceFilter)}</p>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <SourceBadge source={session.source} />
-          <StatusBadge label={`${session.intent_level} intención`} />
-        </div>
-        <div>
-          <p className="font-medium text-slate-950">{session.attribution.utm_campaign || "Sin campaña"}</p>
-          <p className="mt-1 text-slate-500">{session.attribution.utm_content || session.attribution.ad_id || "Sin anuncio"}</p>
-        </div>
+
+      {/* Fecha */}
+      <div className="shrink-0 pt-0.5">
+        <p className="font-mono text-[11px]" style={{ color: "var(--color-text-3)" }}>
+          {formatDateTime(session.timestamp).split(" ")[0]}
+        </p>
+        <p className="font-mono text-[11px]" style={{ color: "var(--color-text-3)" }}>
+          {formatDateTime(session.timestamp).split(" ")[1]}
+        </p>
+      </div>
+
+      {/* Visitante / servicio */}
+      <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge label={mainEventLabel(session)} />
+          <span className="font-mono text-xs font-semibold" style={{ color: "var(--color-text-1)" }}>
+            {shortId(session.visitor_id)}
+          </span>
+          <IntentBadge level={session.intent_level} />
           {hasRecording && (
-            <Link
-              href={`/visitantes/${session.visitor_id}?session=${session.session_id}&tab=grabaciones`}
-              className="pointer-events-auto relative z-20 rounded-md border border-blue-200 px-1.5 py-1 text-xs text-blue-700 hover:bg-blue-50"
+            <span
+              className="text-[10px] font-medium"
+              style={{ color: "var(--color-signal-text)" }}
             >
-              Ver grabación
-            </Link>
+              ● grabación
+            </span>
           )}
         </div>
+        <p className="mt-0.5 truncate text-sm" style={{ color: "var(--color-text-2)" }}>
+          {humanValue(session.service)} · {session.page_path}
+        </p>
+        {includesFilteredService && (
+          <p className="mt-0.5 text-xs" style={{ color: "var(--color-warn-text)" }}>
+            Incluye eventos de {humanValue(serviceFilter)}
+          </p>
+        )}
+      </div>
+
+      {/* Fuente */}
+      <div className="shrink-0">
+        <SourceBadge source={session.source} />
+      </div>
+
+      {/* Campaña */}
+      <div className="hidden shrink-0 xl:block">
+        <p className="text-sm font-medium" style={{ color: "var(--color-text-1)" }}>
+          {session.attribution.utm_campaign || "Sin campaña"}
+        </p>
+        <p className="mt-0.5 text-xs" style={{ color: "var(--color-text-3)" }}>
+          {session.attribution.utm_content || session.attribution.ad_id || "Sin anuncio"}
+        </p>
+      </div>
+
+      {/* Actividad + botón grabación (z-20 sobre stretched link) */}
+      <div className="hidden shrink-0 items-center gap-2 xl:flex">
+        <span
+          className="text-xs font-medium"
+          style={{ color: "var(--color-text-2)" }}
+        >
+          {mainEventLabel(session)}
+        </span>
+        {hasRecording && (
+          <Link
+            href={`/visitantes/${session.visitor_id}?session=${session.session_id}&tab=grabaciones`}
+            className="relative z-20 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors hover:bg-[var(--color-surface)]"
+            style={{
+              borderColor: "var(--color-border)",
+              color: "var(--color-text-2)",
+            }}
+          >
+            Ver grabación
+          </Link>
+        )}
       </div>
     </article>
   );
@@ -217,21 +296,31 @@ function SessionRow({ session, serviceFilter }: { session: Session; serviceFilte
 function SessionsLoading() {
   return (
     <>
-      <section className="grid gap-3 md:grid-cols-4">
+      <section
+        className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border md:grid-cols-4"
+        style={{ background: "var(--color-border)" }}
+      >
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="bf-panel animate-pulse p-3">
-            <div className="h-3 w-24 rounded bg-slate-200" />
-            <div className="mt-3 h-8 w-16 rounded bg-slate-200" />
+          <div key={i} className="flex flex-col px-4 py-3" style={{ background: "var(--color-surface)" }}>
+            <div className="h-2.5 w-24 animate-pulse rounded" style={{ background: "var(--color-surface-2)" }} />
+            <div className="mt-2 h-7 w-12 animate-pulse rounded" style={{ background: "var(--color-surface-2)" }} />
           </div>
         ))}
       </section>
-      <section className="bf-panel bf-defer mt-4 overflow-hidden">
+      <section
+        className="mt-4 overflow-hidden rounded-xl border"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+      >
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="animate-pulse border-b border-slate-100 px-3 py-3">
-            <div className="flex gap-4">
-              <div className="h-4 w-24 rounded bg-slate-200" />
-              <div className="h-4 w-32 rounded bg-slate-200" />
-              <div className="h-4 flex-1 rounded bg-slate-200" />
+          <div
+            key={i}
+            className="flex items-start gap-4 border-b px-4 py-3.5"
+            style={{ borderColor: "var(--color-border)" }}
+          >
+            <div className="h-8 w-16 animate-pulse rounded" style={{ background: "var(--color-surface-2)" }} />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-2/3 animate-pulse rounded" style={{ background: "var(--color-surface-2)" }} />
+              <div className="h-3 w-1/2 animate-pulse rounded" style={{ background: "var(--color-surface-2)" }} />
             </div>
           </div>
         ))}
@@ -258,40 +347,69 @@ export default async function SesionesPage({ searchParams }: PageProps) {
   return (
     <AppShell
       title="Sesiones"
-      description="Revisa cada visita: de dónde vino, qué servicio vio, qué hizo y si hay grabación."
+      description="De dónde vino cada visitante, qué servicio vio, qué hizo, y si hay grabación."
     >
-      <section className="bf-panel p-3">
+      {/* Barra de filtros */}
+      <section
+        className="overflow-hidden rounded-xl border p-4"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+      >
         <form className="grid gap-3 md:grid-cols-[1fr_auto]">
           <input
             name="q"
             defaultValue={String(params.q || "")}
-            placeholder="Buscar por sesión, visitante, servicio, campaña, anuncio o página..."
-            className="h-9 rounded-md border border-slate-200 px-3 text-sm outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+            placeholder="Buscar por sesión, visitante, servicio, campaña..."
+            className="h-9 rounded-lg border px-3 text-sm outline-none"
+            style={{
+              borderColor: "var(--color-border)",
+              background: "var(--color-bg)",
+              color: "var(--color-text-1)",
+            }}
           />
-          <button className="h-9 rounded-md bg-slate-950 px-4 text-sm font-medium text-white hover:bg-slate-800">
+          <button
+            className="h-9 rounded-lg px-4 text-sm font-medium text-white transition-colors hover:opacity-90"
+            style={{ background: "var(--color-primary)" }}
+          >
             Buscar
           </button>
         </form>
+
         <div className="mt-3 flex flex-wrap gap-2">
           {filterChips.map((item) => (
             <Link
               key={item.key}
               href={`/sesiones?filter=${item.key}${query ? `&q=${encodeURIComponent(query)}` : ""}`}
-              className={`bf-chip ${
+              className="bf-chip transition-colors"
+              style={
                 filter === item.key
-                  ? "border-slate-900 bg-slate-950 text-white"
-                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
+                  ? {
+                      borderColor: "var(--color-primary)",
+                      background: "var(--color-primary-bg)",
+                      color: "var(--color-primary)",
+                    }
+                  : {
+                      borderColor: "var(--color-border)",
+                      background: "transparent",
+                      color: "var(--color-text-2)",
+                    }
+              }
             >
               {item.label}
             </Link>
           ))}
-          {service ? <ActiveChip label={`Servicio: ${humanValue(service)}`} href="/sesiones" /> : null}
-          {source ? <ActiveChip label={`Fuente: ${source}`} href="/sesiones" /> : null}
-          {medium ? <ActiveChip label={`Medio: ${medium}`} href="/sesiones" /> : null}
-          {content ? <ActiveChip label={`Contenido: ${content === "__missing__" ? "Sin anuncio" : content}`} href="/sesiones" /> : null}
-          {event ? <ActiveChip label={`Evento: ${humanValue(event)}`} href="/sesiones" /> : null}
-          {campaign ? <ActiveChip label={`Campaña: ${campaign}`} href="/sesiones" /> : null}
+
+          {/* Active chips — filtros externos */}
+          {service && <ActiveChip label={`Servicio: ${humanValue(service)}`} href="/sesiones" />}
+          {source && <ActiveChip label={`Fuente: ${source}`} href="/sesiones" />}
+          {medium && <ActiveChip label={`Medio: ${medium}`} href="/sesiones" />}
+          {content && (
+            <ActiveChip
+              label={`Contenido: ${content === "__missing__" ? "Sin anuncio" : content}`}
+              href="/sesiones"
+            />
+          )}
+          {event && <ActiveChip label={`Evento: ${humanValue(event)}`} href="/sesiones" />}
+          {campaign && <ActiveChip label={`Campaña: ${campaign}`} href="/sesiones" />}
         </div>
       </section>
 
@@ -304,18 +422,17 @@ export default async function SesionesPage({ searchParams }: PageProps) {
   );
 }
 
-function MiniMetric({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="bf-panel p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
-      <p className="mt-2 font-mono text-2xl font-semibold text-slate-950">{value}</p>
-    </div>
-  );
-}
-
 function ActiveChip({ label, href }: { label: string; href: string }) {
   return (
-    <Link href={href} className="bf-chip border-amber-200 bg-amber-50 text-amber-800">
+    <Link
+      href={href}
+      className="bf-chip transition-colors"
+      style={{
+        borderColor: "oklch(88% 0.07 75)",
+        background: "var(--color-warn-bg)",
+        color: "var(--color-warn-text)",
+      }}
+    >
       {label} ×
     </Link>
   );

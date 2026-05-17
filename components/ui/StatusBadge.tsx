@@ -3,18 +3,26 @@ type StatusBadgeProps = {
 };
 
 export function StatusBadge({ label }: StatusBadgeProps) {
-  const style = label.includes("Alta")
-    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-    : label.includes("Media")
-      ? "bg-amber-50 text-amber-700 border-amber-200"
-      : label.includes("Replay") || label.includes("Grabacion")
-        ? "bg-blue-50 text-blue-700 border-blue-200"
-        : label.includes("Sin")
-          ? "bg-rose-50 text-rose-700 border-rose-200"
-          : "bg-slate-50 text-slate-600 border-slate-200";
+  const isSignal = label.includes("Alta");
+  const isWarn = label.includes("Media");
+  const isRecording = label.includes("Grabaci") || label.includes("Replay");
+  const isMissing = label.includes("Sin");
+
+  const style = isSignal
+    ? { bg: "var(--color-signal-bg)",  color: "var(--color-signal-text)", border: "oklch(88% 0.06 145)" }
+    : isWarn
+    ? { bg: "var(--color-warn-bg)",    color: "var(--color-warn-text)",   border: "oklch(88% 0.07 75)" }
+    : isRecording
+    ? { bg: "var(--color-primary-bg)", color: "var(--color-primary)",     border: "oklch(88% 0.04 255)" }
+    : isMissing
+    ? { bg: "var(--color-error-bg)",   color: "var(--color-error-text)",  border: "oklch(90% 0.03 25)" }
+    : { bg: "var(--color-surface-2)",  color: "var(--color-text-2)",      border: "var(--color-border)" };
 
   return (
-    <span className={`inline-flex items-center rounded-md border px-2 py-1 text-[11px] font-medium leading-none ${style}`}>
+    <span
+      className="inline-flex items-center rounded-md border px-2 py-1 text-[11px] font-medium leading-none"
+      style={{ background: style.bg, color: style.color, borderColor: style.border }}
+    >
       {label}
     </span>
   );

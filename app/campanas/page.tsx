@@ -33,11 +33,12 @@ type AttributionRow = {
   rate: number;
 };
 
-function signalLabel(waClicks: number, sessions: number): { label: string; cls: string } {
-  if (sessions === 0) return { label: "Sin datos", cls: "bg-slate-100 text-slate-500" };
-  if (waClicks === 0) return { label: "Sin señal WA", cls: "bg-slate-100 text-slate-500" };
-  if (waClicks >= 3) return { label: "Alta señal", cls: "bg-emerald-100 text-emerald-700" };
-  return { label: "Señal baja", cls: "bg-amber-100 text-amber-700" };
+function signalStyle(waClicks: number, sessions: number): { label: string; bg: string; color: string } {
+  if (sessions === 0 || waClicks === 0)
+    return { label: "Sin señal WA", bg: "var(--color-surface-2)", color: "var(--color-text-3)" };
+  if (waClicks >= 3)
+    return { label: "Alta señal", bg: "var(--color-signal-bg)", color: "var(--color-signal-text)" };
+  return { label: "Señal baja", bg: "var(--color-warn-bg)", color: "var(--color-warn-text)" };
 }
 
 async function AttributionTable({ dimension }: { dimension: Dimension }) {
@@ -45,15 +46,9 @@ async function AttributionTable({ dimension }: { dimension: Dimension }) {
   let rows: AttributionRow[];
 
   if (dimension === "campaign") {
-    // getCampaignSummaries() avoids loading all sessions for this dimension.
-    // PostHogAdapter uses an aggregate HogQL query; MockAdapter uses static data.
-    // TODO: build equivalent aggregate methods for source/medium/content dimensions.
     const campaigns = await adapter.getCampaignSummaries(DEFAULT_WORKSPACE_ID);
     rows = buildRowsFromCampaigns(campaigns);
   } else {
-    // V0: build aggregate from listSessions for source/medium/content.
-    // Acceptable at current volumes; replace with adapter-level HogQL
-    // aggregate queries before data exceeds ~500 sessions.
     const sessions = await adapter.listSessions(DEFAULT_WORKSPACE_ID);
     rows = buildAttributionRows(sessions, dimension);
   }
@@ -63,41 +58,66 @@ async function AttributionTable({ dimension }: { dimension: Dimension }) {
   }
 
   return (
-    <section className="bf-panel bf-defer mt-4 overflow-hidden">
-      <div className="grid border-b border-slate-200 bg-slate-50/80 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 md:grid-cols-[1.2fr_120px_100px_120px_120px_110px_120px]">
+    <section
+      className="mt-4 overflow-hidden rounded-xl border bf-defer"
+      style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+    >
+      {/* Cabecera */}
+      <div
+        className="hidden grid-cols-[1.2fr_120px_80px_100px_100px_90px_110px] border-b px-5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] md:grid"
+        style={{
+          background: "var(--color-surface-2)",
+          borderColor: "var(--color-border)",
+          color: "var(--color-text-3)",
+        }}
+      >
         <span>Dimensión</span>
         <span>Fuente</span>
         <span>Sesiones</span>
-        <span>Clicks en servicios</span>
-        <span>Clicks a WhatsApp</span>
-        <span>% WhatsApp</span>
+        <span>Clicks servicios</span>
+        <span>WhatsApp</span>
+        <span>% WA</span>
         <span>Señal</span>
       </div>
+
       {rows.map((row) => {
-        const signal = signalLabel(row.whatsappClicks, row.sessions);
+        const signal = signalStyle(row.whatsappClicks, row.sessions);
         return (
           <article
             key={row.key}
-            className="bf-row grid gap-3 px-3 py-2.5 text-sm md:grid-cols-[1.2fr_120px_100px_120px_120px_110px_120px] md:items-center"
+            className="grid gap-3 border-b px-5 py-3.5 text-sm transition-colors hover:bg-[var(--color-surface-2)] md:grid-cols-[1.2fr_120px_80px_100px_100px_90px_110px] md:items-center"
+            style={{ borderColor: "var(--color-border)" }}
           >
             <div>
-              <p className="font-semibold text-slate-950">{row.label}</p>
-              <p className="mt-1 font-mono text-xs text-slate-400">{row.technical || "—"}</p>
+              <p className="font-semibold" style={{ color: "var(--color-text-1)" }}>
+                {row.label}
+              </p>
+              <p className="font-mono text-xs" style={{ color: "var(--color-text-3)" }}>
+                {row.technical || "—"}
+              </p>
             </div>
             <SourceBadge source={row.source} />
-            <span className="font-semibold text-slate-950">{row.sessions}</span>
-            <span className="text-slate-700">{row.serviceClicks}</span>
-            <span className="font-semibold text-emerald-700">{row.whatsappClicks}</span>
-            <span className="text-slate-600">
-              {row.rate}%
+            <span className="font-semibold" style={{ color: "var(--color-text-1)" }}>
+              {row.sessions}
+            </span>
+            <span style={{ color: "var(--color-text-2)" }}>{row.serviceClicks}</span>
+            <span className="font-semibold" style={{ color: "var(--color-signal-text)" }}>
+              {row.whatsappClicks}
+            </span>
+            <div>
+              <span style={{ color: "var(--color-text-2)" }}>{row.rate}%</span>
               <Link
                 href={buildSessionsHref(dimension, row)}
-                className="mt-1 block text-xs font-medium text-blue-700 hover:underline"
+                className="mt-0.5 block text-xs font-medium transition-colors"
+                style={{ color: "var(--color-primary-text)" }}
               >
                 Ver sesiones
               </Link>
-            </span>
-            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${signal.cls}`}>
+            </div>
+            <span
+              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
+              style={{ background: signal.bg, color: signal.color }}
+            >
               {signal.label}
             </span>
           </article>
@@ -109,24 +129,19 @@ async function AttributionTable({ dimension }: { dimension: Dimension }) {
 
 function AttributionTableLoading() {
   return (
-    <section className="bf-panel bf-defer mt-4 overflow-hidden">
-      <div className="grid border-b border-slate-200 bg-slate-50/80 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 md:grid-cols-[1.2fr_120px_100px_120px_120px_110px_120px]">
-        <span>Dimensión</span>
-        <span>Fuente</span>
-        <span>Sesiones</span>
-        <span>Clicks en servicios</span>
-        <span>Clicks a WhatsApp</span>
-        <span>% WhatsApp</span>
-        <span>Señal</span>
-      </div>
+    <section
+      className="mt-4 overflow-hidden rounded-xl border bf-defer"
+      style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+    >
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="animate-pulse border-b border-slate-100 px-3 py-3">
-          <div className="flex gap-4">
-            <div className="h-4 w-32 rounded bg-slate-200" />
-            <div className="h-4 w-20 rounded bg-slate-200" />
-            <div className="h-4 w-16 rounded bg-slate-200" />
-            <div className="h-4 w-16 rounded bg-slate-200" />
-          </div>
+        <div
+          key={i}
+          className="flex items-center gap-4 border-b px-5 py-3.5"
+          style={{ borderColor: "var(--color-border)" }}
+        >
+          <div className="h-4 w-32 animate-pulse rounded" style={{ background: "var(--color-surface-2)" }} />
+          <div className="h-4 w-20 animate-pulse rounded" style={{ background: "var(--color-surface-2)" }} />
+          <div className="h-4 w-12 animate-pulse rounded" style={{ background: "var(--color-surface-2)" }} />
         </div>
       ))}
     </section>
@@ -145,23 +160,36 @@ export default async function CampanasPage({ searchParams }: PageProps) {
       title="Campañas y fuentes"
       description="Compara campañas, fuentes y anuncios según las visitas y clicks que generan."
     >
-      <section className="bf-panel p-3">
+      {/* Selector de dimensión */}
+      <section
+        className="overflow-hidden rounded-xl border p-4"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+      >
         <div className="flex flex-wrap gap-2">
           {dimensions.map((dimension) => (
             <Link
               key={dimension.key}
               href={`/campanas?dimension=${dimension.key}`}
-              className={`bf-chip ${
+              className="bf-chip transition-colors"
+              style={
                 safeDimension === dimension.key
-                  ? "border-slate-900 bg-slate-950 text-white"
-                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
+                  ? {
+                      borderColor: "var(--color-primary)",
+                      background: "var(--color-primary-bg)",
+                      color: "var(--color-primary)",
+                    }
+                  : {
+                      borderColor: "var(--color-border)",
+                      background: "transparent",
+                      color: "var(--color-text-2)",
+                    }
+              }
             >
               {dimension.label}
             </Link>
           ))}
         </div>
-        <p className="mt-3 text-sm text-slate-500">
+        <p className="mt-3 text-sm" style={{ color: "var(--color-text-2)" }}>
           {dimensions.find((item) => item.key === safeDimension)?.caption}
         </p>
       </section>
@@ -170,8 +198,8 @@ export default async function CampanasPage({ searchParams }: PageProps) {
         <AttributionTable dimension={safeDimension} />
       </Suspense>
 
-      <p className="mt-4 text-xs text-slate-400">
-        Un click a WhatsApp muestra intención, pero todavía no confirma un lead calificado ni una venta.
+      <p className="mt-4 text-xs" style={{ color: "var(--color-text-3)" }}>
+        Un click a WhatsApp muestra intención, pero no confirma un lead calificado ni una venta.
       </p>
     </AppShell>
   );
@@ -223,7 +251,7 @@ function buildAttributionRows(sessions: Session[], dimension: Dimension): Attrib
       acc[key].whatsappClicks += session.events.filter((e) => e.event_name === "whatsapp_click").length;
       return acc;
     },
-    {}
+    {},
   );
 
   return Object.values(grouped)
@@ -231,15 +259,11 @@ function buildAttributionRows(sessions: Session[], dimension: Dimension): Attrib
     .sort((a, b) => b.whatsappClicks - a.whatsappClicks || b.sessions - a.sessions);
 }
 
-// Build correct /sesiones filter URL based on the active attribution dimension.
-// Each dimension maps to an explicit adapter-level filter so results are accurate.
 function buildSessionsHref(dimension: Dimension, row: AttributionRow): string {
   const enc = encodeURIComponent;
   if (dimension === "campaign") return `/sesiones?campaign=${enc(row.label)}`;
   if (dimension === "source")   return `/sesiones?source=${enc(row.label)}`;
   if (dimension === "medium")   return `/sesiones?medium=${enc(row.label)}`;
-  // "Sin anuncio" means both utm_content and ad_id are empty; use sentinel so
-  // the adapter can match on empty fields rather than the human-readable label.
   if (dimension === "content") {
     const val = row.label === "Sin anuncio" ? "__missing__" : row.label;
     return `/sesiones?content=${enc(val)}`;

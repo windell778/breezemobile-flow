@@ -6,6 +6,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { ReplayPreview } from "@/components/ui/ReplayPreview";
 import { SourceBadge } from "@/components/ui/SourceBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { IntentBadge } from "@/components/ui/IntentBadge";
 import { getAdapter, DEFAULT_WORKSPACE_ID } from "@/lib/data/adapter";
 import type { Session } from "@/lib/data/types";
 import { buildVisitorSummary, mainEventLabel } from "@/lib/analytics";
@@ -51,10 +52,9 @@ export default async function VisitorPage({ params, searchParams }: PageProps) {
   const activeTab = knownTabs.includes(rawTab) ? rawTab : "resumen";
   const summary = buildVisitorSummary(visitorSessions);
 
-  // KPIs computed from sessions
   const waClicks = visitorSessions.reduce(
     (acc, s) => acc + s.events.filter((e) => e.event_name === "whatsapp_click").length,
-    0
+    0,
   );
   const servicesViewed = new Set(visitorSessions.map((s) => s.service)).size;
   const recordingsCount = visitorSessions.filter((s) => s.recording?.status === "available").length;
@@ -66,89 +66,106 @@ export default async function VisitorPage({ params, searchParams }: PageProps) {
     `/visitantes/${visitorId}?session=${sessionId}${tab === "resumen" ? "" : `&tab=${tab}`}`;
 
   return (
-    <AppShell title="Visitor Intelligence">
-      <Link href="/sesiones" className="bf-control mb-5 bg-white text-slate-600 hover:bg-slate-50">
+    <AppShell>
+      {/* Back link */}
+      <Link
+        href="/sesiones"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
+        style={{ color: "var(--color-text-2)" }}
+      >
         ← Sesiones
       </Link>
 
-      {/* Expediente header */}
-      <div className="bf-panel p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      {/* Header sticky con KPIs + tabs */}
+      <div
+        className="mb-6 overflow-hidden rounded-xl border"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+      >
+        {/* Fila 1: ID + KPIs */}
+        <div
+          className="flex flex-wrap items-center gap-6 border-b px-5 py-4"
+          style={{ borderColor: "var(--color-border)" }}
+        >
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+            <p
+              className="text-[10px] font-semibold uppercase tracking-[0.18em]"
+              style={{ color: "var(--color-text-3)" }}
+            >
               Visitante anónimo
             </p>
-            <h2 className="mt-1.5 font-mono text-xl font-semibold text-slate-950">
+            <p className="font-mono text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
               {shortId(visitorId)}
-            </h2>
-            <p className="mt-0.5 font-mono text-xs text-slate-400">{visitorId}</p>
+            </p>
+            <p className="font-mono text-[10px]" style={{ color: "var(--color-text-3)" }}>
+              {visitorId}
+            </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <StatusBadge label={`${maxIntent} intención`} />
+
+          <div className="h-8 w-px hidden sm:block" style={{ background: "var(--color-border)" }} />
+
+          {[
+            { label: "Sesiones", value: visitorSessions.length },
+            { label: "WA clicks", value: waClicks },
+            { label: "Servicios", value: servicesViewed },
+            { label: "Grabaciones", value: recordingsCount },
+          ].map(({ label, value }) => (
+            <div key={label}>
+              <p className="text-[10px]" style={{ color: "var(--color-text-3)" }}>{label}</p>
+              <p className="text-lg font-bold tracking-tight" style={{ color: "var(--color-text-1)" }}>
+                {value}
+              </p>
+            </div>
+          ))}
+
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <IntentBadge level={maxIntent} />
             <SourceBadge source={summary.firstSource} />
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-500">
-          <span>Última actividad: <span className="text-slate-800">{formatDateTime(summary.last.timestamp)}</span></span>
-          <span>Servicio principal: <span className="text-slate-800">{humanValue(summary.primaryService)}</span></span>
-          <span>Fuente inicial: <span className="text-slate-800">{summary.firstSource}</span></span>
-          <span>Estado: <span className="text-slate-800">{summary.state}</span></span>
+
+        {/* Fila 2: Tabs */}
+        <div className="flex gap-0 overflow-x-auto px-3">
+          {tabs.map(([key, label]) => {
+            const active = activeTab === key;
+            return (
+              <Link
+                key={key}
+                href={tabHref(key)}
+                className="flex shrink-0 items-center border-b-2 px-3 py-3 text-[13px] font-medium whitespace-nowrap transition-colors"
+                style={
+                  active
+                    ? { borderColor: "var(--color-primary)", color: "var(--color-primary)" }
+                    : { borderColor: "transparent", color: "var(--color-text-2)" }
+                }
+              >
+                {label}
+              </Link>
+            );
+          })}
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="mt-3 grid gap-3 sm:grid-cols-4">
-        <KpiCard label="Sesiones" value={visitorSessions.length} />
-        <KpiCard label="Clicks a WhatsApp" value={waClicks} note="señal de intención" />
-        <KpiCard label="Servicios vistos" value={servicesViewed} />
-        <KpiCard label="Grabaciones" value={recordingsCount} />
-      </div>
-
-      {/* Tabs */}
-      <nav className="mt-4 flex flex-wrap gap-2">
-        {tabs.map(([key, label]) => (
-          <Link
-            key={key}
-            href={tabHref(key)}
-            className={`bf-chip ${
-              activeTab === key
-                ? "border-slate-950 bg-slate-950 text-white"
-                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-            }`}
-          >
-            {label}
-          </Link>
-        ))}
-      </nav>
-
-      <section className="bf-defer mt-4">
-        {activeTab === "resumen" ? (
+      {/* Contenido del tab */}
+      <section className="bf-defer">
+        {activeTab === "resumen" && (
           <SummaryTab sessions={visitorSessions} activeSession={activeSession} visitorId={visitorId} />
-        ) : null}
-        {activeTab === "grabaciones" ? (
+        )}
+        {activeTab === "grabaciones" && (
           <RecordingsTab sessions={visitorSessions} visitorId={visitorId} activeSessionId={activeSession.session_id} />
-        ) : null}
-        {activeTab === "journey" ? <JourneyTab sessions={visitorSessions} visitorId={visitorId} /> : null}
-        {activeTab === "sesiones" ? (
+        )}
+        {activeTab === "journey" && (
+          <JourneyTab sessions={visitorSessions} visitorId={visitorId} />
+        )}
+        {activeTab === "sesiones" && (
           <SessionsTab sessions={visitorSessions} visitorId={visitorId} activeSessionId={activeSession.session_id} />
-        ) : null}
-        {activeTab === "eventos" ? (
+        )}
+        {activeTab === "eventos" && (
           <EventsTab sessions={visitorSessions} activeSessionId={activeSession.session_id} />
-        ) : null}
-        {activeTab === "atribucion" ? <AttributionTab session={activeSession} /> : null}
-        {activeTab === "tecnico" ? <TechnicalTab session={activeSession} /> : null}
+        )}
+        {activeTab === "atribucion" && <AttributionTab session={activeSession} />}
+        {activeTab === "tecnico" && <TechnicalTab session={activeSession} />}
       </section>
     </AppShell>
-  );
-}
-
-function KpiCard({ label, value, note }: { label: string; value: number; note?: string }) {
-  return (
-    <div className="bf-panel p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
-      <p className="mt-2 font-mono text-2xl font-semibold text-slate-950">{value}</p>
-      {note ? <p className="mt-1 text-xs text-slate-400">{note}</p> : null}
-    </div>
   );
 }
 
@@ -160,9 +177,14 @@ function SummaryTab({ sessions, activeSession, visitorId }: { sessions: Session[
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
-      <div className="bf-panel p-4">
-        <h2 className="text-base font-semibold text-slate-950">Qué sabemos</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
+      <div
+        className="overflow-hidden rounded-xl border p-5"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+      >
+        <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
+          Qué sabemos
+        </h2>
+        <p className="mt-3 text-sm leading-6" style={{ color: "var(--color-text-2)" }}>
           Este visitante tiene {sessions.length} sesión{sessions.length !== 1 ? "es" : ""} registrada{sessions.length !== 1 ? "s" : ""}.
           La sesión seleccionada{" "}
           <span className="font-mono" title={activeSession.session_id}>{shortId(activeSession.session_id)}</span>{" "}
@@ -175,40 +197,58 @@ function SummaryTab({ sessions, activeSession, visitorId }: { sessions: Session[
         </div>
       </div>
 
-      <div className="bf-panel p-4">
-        <h2 className="text-base font-semibold text-slate-950">Sesión seleccionada</h2>
+      <div
+        className="overflow-hidden rounded-xl border p-5"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+      >
+        <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
+          Sesión seleccionada
+        </h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <KeyValue label="Página" value={activeSession.page_path} />
           <KeyValue label="Campaña" value={activeSession.attribution.utm_campaign || "Sin campaña"} />
           <KeyValue label="Evento principal" value={mainEventLabel(activeSession)} />
           <KeyValue label="Duración" value={formatDuration(activeSession.duration)} />
         </div>
-        {hasRecording ? (
+        {hasRecording && (
           <Link
             href={`/visitantes/${visitorId}?session=${activeSession.session_id}&tab=grabaciones`}
-            className="bf-control mt-4 border-slate-950 bg-slate-950 text-white hover:bg-slate-800"
+            className="mt-4 inline-flex h-9 items-center rounded-lg px-4 text-sm font-medium text-white transition-colors hover:opacity-90"
+            style={{ background: "var(--color-primary)" }}
           >
             Ver grabación
           </Link>
-        ) : null}
+        )}
       </div>
 
-      <div className="bf-panel p-4 xl:col-span-2">
-        <h2 className="text-base font-semibold text-slate-950">Últimos eventos de intención</h2>
+      <div
+        className="overflow-hidden rounded-xl border p-5 xl:col-span-2"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+      >
+        <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
+          Últimos eventos de intención
+        </h2>
         <div className="mt-4 space-y-2">
           {importantEvents.length ? (
             importantEvents.map((event) => (
               <div
                 key={event.event_id}
-                className="grid gap-2 rounded-md border border-slate-200 p-2.5 text-sm md:grid-cols-[180px_1fr_1fr]"
+                className="grid gap-2 rounded-lg border p-3 text-sm md:grid-cols-[180px_1fr_1fr]"
+                style={{ borderColor: "var(--color-border)" }}
               >
-                <span className="text-slate-500">{formatDateTime(event.timestamp)}</span>
-                <span className="font-medium text-slate-950">{eventLabels[event.event_name]}</span>
-                <span className="text-slate-600">{event.cta_text || event.page_path}</span>
+                <span style={{ color: "var(--color-text-3)" }}>{formatDateTime(event.timestamp)}</span>
+                <span className="font-medium" style={{ color: "var(--color-text-1)" }}>
+                  {eventLabels[event.event_name]}
+                </span>
+                <span style={{ color: "var(--color-text-2)" }}>
+                  {event.cta_text || event.page_path}
+                </span>
               </div>
             ))
           ) : (
-            <p className="text-sm text-slate-500">Solo página vista registrada en esta sesión.</p>
+            <p className="text-sm" style={{ color: "var(--color-text-2)" }}>
+              Solo página vista registrada en esta sesión.
+            </p>
           )}
         </div>
       </div>
@@ -227,33 +267,42 @@ function RecordingsTab({ sessions, visitorId, activeSessionId }: { sessions: Ses
         {featured ? (
           <ReplayPreview session={featured} />
         ) : (
-          <div className="bf-panel p-4 text-sm text-slate-500">
+          <div
+            className="rounded-xl border p-5 text-sm"
+            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text-2)" }}
+          >
             Este visitante no tiene grabaciones disponibles.
           </div>
         )}
       </div>
-      <div className="bf-panel p-4">
-        <h2 className="text-base font-semibold text-slate-950">Grabaciones del visitante</h2>
-        <div className="mt-4 space-y-3">
+      <div
+        className="overflow-hidden rounded-xl border p-5"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+      >
+        <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
+          Grabaciones del visitante
+        </h2>
+        <div className="mt-4 space-y-2">
           {sessions.map((session) => (
             <Link
               key={session.session_id}
               href={`/visitantes/${visitorId}?session=${session.session_id}&tab=grabaciones`}
-              className={`block rounded-md border p-2.5 ${
+              className="block rounded-lg border p-3 transition-colors"
+              style={
                 session.session_id === activeSessionId
-                  ? "border-slate-900 bg-slate-50"
-                  : "border-slate-200 hover:bg-slate-50"
-              }`}
+                  ? { borderColor: "var(--color-primary)", background: "var(--color-primary-bg)" }
+                  : { borderColor: "var(--color-border)", background: "transparent" }
+              }
             >
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-medium text-slate-950" title={session.session_id}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium" style={{ color: "var(--color-text-1)" }} title={session.session_id}>
                   Sesión {shortId(session.session_id)}
                 </p>
                 <StatusBadge
                   label={session.recording?.status === "available" ? "Grabación" : "Sin grabación"}
                 />
               </div>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-xs" style={{ color: "var(--color-text-3)" }}>
                 {session.page_path} · {formatDuration(session.duration)}
               </p>
             </Link>
@@ -265,9 +314,9 @@ function RecordingsTab({ sessions, visitorId, activeSessionId }: { sessions: Ses
 }
 
 const eventDot: Record<string, string> = {
-  whatsapp_click: "bg-emerald-500",
-  service_click: "bg-blue-500",
-  page_view_custom: "bg-slate-300",
+  whatsapp_click: "var(--color-signal)",
+  service_click: "var(--color-primary)",
+  page_view_custom: "var(--color-border-2)",
 };
 
 function JourneyTab({ sessions, visitorId }: { sessions: Session[]; visitorId: string }) {
@@ -276,19 +325,31 @@ function JourneyTab({ sessions, visitorId }: { sessions: Session[]; visitorId: s
       {sessions.map((session, idx) => {
         const hasRecording = session.recording?.status === "available";
         return (
-          <div key={session.session_id} className="bf-panel overflow-hidden">
+          <div
+            key={session.session_id}
+            className="overflow-hidden rounded-xl border"
+            style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+          >
             {/* Session header */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+            <div
+              className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3"
+              style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border)" }}
+            >
               <div className="flex items-center gap-3">
-                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-bold text-white">
+                <span
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                  style={{ background: "var(--color-primary)" }}
+                >
                   {idx + 1}
                 </span>
                 <div>
-                  <p className="text-sm font-semibold text-slate-950">
+                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
                     Sesión{" "}
-                    <span className="font-mono font-normal text-slate-500">{shortId(session.session_id)}</span>
+                    <span className="font-mono font-normal" style={{ color: "var(--color-text-2)" }}>
+                      {shortId(session.session_id)}
+                    </span>
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs" style={{ color: "var(--color-text-3)" }}>
                     {formatDateTime(session.timestamp)} · {session.source} · {formatDuration(session.duration)}
                   </p>
                 </div>
@@ -299,7 +360,12 @@ function JourneyTab({ sessions, visitorId }: { sessions: Session[]; visitorId: s
                 {hasRecording && (
                   <Link
                     href={`/visitantes/${visitorId}?session=${session.session_id}&tab=grabaciones`}
-                    className="bf-chip border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    className="bf-chip transition-colors"
+                    style={{
+                      borderColor: "var(--color-primary)",
+                      background: "var(--color-primary-bg)",
+                      color: "var(--color-primary)",
+                    }}
                   >
                     Ver grabación
                   </Link>
@@ -307,29 +373,42 @@ function JourneyTab({ sessions, visitorId }: { sessions: Session[]; visitorId: s
               </div>
             </div>
 
-            {/* Campaign context */}
             {session.attribution.utm_campaign && (
-              <div className="border-b border-slate-100 px-4 py-2 text-xs text-slate-500">
-                Campaña: <span className="font-medium text-slate-700">{session.attribution.utm_campaign}</span>
+              <div
+                className="border-b px-5 py-2 text-xs"
+                style={{ borderColor: "var(--color-border)", color: "var(--color-text-3)" }}
+              >
+                Campaña:{" "}
+                <span className="font-medium" style={{ color: "var(--color-text-2)" }}>
+                  {session.attribution.utm_campaign}
+                </span>
                 {session.attribution.utm_medium && ` · ${session.attribution.utm_medium}`}
               </div>
             )}
 
-            {/* Events */}
-            <div className="divide-y divide-slate-100 px-4">
+            <div className="divide-y px-5" style={{ borderColor: "var(--color-border)" }}>
               {session.events.map((event) => (
                 <div key={event.event_id} className="flex items-start gap-3 py-2.5">
                   <span
-                    className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${eventDot[event.event_name] ?? "bg-slate-300"}`}
+                    className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: eventDot[event.event_name] ?? "var(--color-border-2)" }}
                   />
                   <div className="min-w-0 flex-1">
-                    <span className="text-sm font-medium text-slate-950">{eventLabels[event.event_name]}</span>
+                    <span className="text-sm font-medium" style={{ color: "var(--color-text-1)" }}>
+                      {eventLabels[event.event_name]}
+                    </span>
                     {event.cta_text && (
-                      <span className="ml-2 text-sm text-slate-500">&ldquo;{event.cta_text}&rdquo;</span>
+                      <span className="ml-2 text-sm" style={{ color: "var(--color-text-2)" }}>
+                        &ldquo;{event.cta_text}&rdquo;
+                      </span>
                     )}
-                    <p className="mt-0.5 text-xs text-slate-400">{session.page_path}</p>
+                    <p className="mt-0.5 text-xs" style={{ color: "var(--color-text-3)" }}>
+                      {session.page_path}
+                    </p>
                   </div>
-                  <span className="shrink-0 text-xs text-slate-400">{formatDateTime(event.timestamp)}</span>
+                  <span className="shrink-0 text-xs" style={{ color: "var(--color-text-3)" }}>
+                    {formatDateTime(event.timestamp)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -342,23 +421,26 @@ function JourneyTab({ sessions, visitorId }: { sessions: Session[]; visitorId: s
 
 function SessionsTab({ sessions, visitorId, activeSessionId }: { sessions: Session[]; visitorId: string; activeSessionId: string }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {sessions.map((session) => (
         <Link
           key={session.session_id}
           href={`/visitantes/${visitorId}?session=${session.session_id}&tab=sesiones`}
-          className={`bf-panel block p-3 transition hover:border-slate-300 ${
-            session.session_id === activeSessionId ? "border-slate-900" : "border-slate-200"
-          }`}
+          className="block overflow-hidden rounded-xl border p-4 transition-colors"
+          style={
+            session.session_id === activeSessionId
+              ? { borderColor: "var(--color-primary)", background: "var(--color-primary-bg)" }
+              : { borderColor: "var(--color-border)", background: "var(--color-surface)" }
+          }
         >
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-slate-950" title={session.session_id}>
-              Sesión {shortId(session.session_id)}
+            <p className="font-mono text-sm font-semibold" style={{ color: "var(--color-text-1)" }} title={session.session_id}>
+              {shortId(session.session_id)}
             </p>
             <SourceBadge source={session.source} />
             <StatusBadge label={mainEventLabel(session)} />
           </div>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm" style={{ color: "var(--color-text-2)" }}>
             {formatDateTime(session.timestamp)} · {session.page_path} · {humanValue(session.service)}
           </p>
         </Link>
@@ -371,16 +453,33 @@ function EventsTab({ sessions, activeSessionId }: { sessions: Session[]; activeS
   const activeEvents = sessions.flatMap((s) => s.events).filter((e) => e.session_id === activeSessionId);
 
   return (
-    <div className="bf-panel overflow-hidden">
-      <div className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-800" title={activeSessionId}>
+    <div
+      className="overflow-hidden rounded-xl border"
+      style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+    >
+      <div
+        className="border-b px-5 py-3 text-sm font-medium"
+        style={{
+          background: "var(--color-surface-2)",
+          borderColor: "var(--color-border)",
+          color: "var(--color-text-1)",
+        }}
+        title={activeSessionId}
+      >
         Sesión activa: {shortId(activeSessionId)}
       </div>
       {activeEvents.map((event) => (
-        <div key={event.event_id} className="bf-row grid gap-3 px-3 py-2.5 text-sm md:grid-cols-[180px_1fr_1fr_1fr]">
-          <span className="text-slate-500">{formatDateTime(event.timestamp)}</span>
-          <span className="font-medium text-slate-950">{eventLabels[event.event_name]}</span>
-          <span className="text-slate-600">{event.page_path}</span>
-          <span className="text-slate-600">{event.cta_text || "Sin dato"}</span>
+        <div
+          key={event.event_id}
+          className="grid gap-3 border-b px-5 py-3 text-sm md:grid-cols-[180px_1fr_1fr_1fr]"
+          style={{ borderColor: "var(--color-border)" }}
+        >
+          <span style={{ color: "var(--color-text-3)" }}>{formatDateTime(event.timestamp)}</span>
+          <span className="font-medium" style={{ color: "var(--color-text-1)" }}>
+            {eventLabels[event.event_name]}
+          </span>
+          <span style={{ color: "var(--color-text-2)" }}>{event.page_path}</span>
+          <span style={{ color: "var(--color-text-2)" }}>{event.cta_text || "Sin dato"}</span>
         </div>
       ))}
     </div>
@@ -391,11 +490,15 @@ function AttributionTab({ session }: { session: Session }) {
   const fields = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "campaign_id", "adset_id", "ad_id", "referrer"];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       <KeyValue label="Fuente" value={session.source} />
       <KeyValue label="Referencia" value={readableReferrer(session.attribution.referrer)} />
       {fields.map((field) => (
-        <KeyValue key={field} label={humanField(field)} value={session.attribution[field as keyof typeof session.attribution] || "Sin dato"} />
+        <KeyValue
+          key={field}
+          label={humanField(field)}
+          value={session.attribution[field as keyof typeof session.attribution] || "Sin dato"}
+        />
       ))}
     </div>
   );
@@ -404,13 +507,25 @@ function AttributionTab({ session }: { session: Session }) {
 function TechnicalTab({ session }: { session: Session }) {
   return (
     <div className="space-y-4">
-      <div className="bf-panel p-4">
-        <h2 className="text-base font-semibold text-slate-950">Datos técnicos</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Nombres técnicos y payloads completos. No domina la experiencia principal.
+      <div
+        className="rounded-xl border p-5"
+        style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+      >
+        <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
+          Datos técnicos
+        </h2>
+        <p className="mt-1 text-sm" style={{ color: "var(--color-text-2)" }}>
+          Nombres técnicos y payloads completos.
         </p>
       </div>
-      <pre className="overflow-auto rounded-md border border-slate-200 bg-slate-950 p-4 text-xs leading-5 text-slate-100 shadow-sm">
+      <pre
+        className="overflow-auto rounded-xl border p-5 text-xs leading-5"
+        style={{
+          borderColor: "var(--color-border)",
+          background: "var(--color-text-1)",
+          color: "oklch(92% 0.01 255)",
+        }}
+      >
         {JSON.stringify(session, null, 2)}
       </pre>
     </div>
@@ -419,9 +534,16 @@ function TechnicalTab({ session }: { session: Session }) {
 
 function KeyValue({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bf-panel p-3">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className="mt-1 break-words text-sm font-semibold text-slate-950">{value}</p>
+    <div
+      className="rounded-xl border p-4"
+      style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+    >
+      <p className="text-xs font-medium" style={{ color: "var(--color-text-3)" }}>
+        {label}
+      </p>
+      <p className="mt-1 break-words text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
+        {value}
+      </p>
     </div>
   );
 }
