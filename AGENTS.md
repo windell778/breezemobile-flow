@@ -17,6 +17,8 @@ Full architecture and decisions: `docs/architecture/plan.md`
 Full change protocol: `docs/development/change-protocol.md`
 
 **Entry-layer documentation (read first if new to this project):**
+- `docs/product/ui-reference-direction.md` - visual references and product-specific UI direction
+- `docs/product/redesign-guardrails.md` - what redesign can change and what it must not break
 - `docs/development/ai-handoff-guide.md` — condensed rules and reading order for IA or new dev
 - `README.md` — what the project is, how to run it, routes, critical rules
 - `docs/architecture/system-map.md` — full data flow from site to UI
@@ -49,7 +51,9 @@ If the task touches the DataAdapter, HogQL queries, or session construction,
 also read `docs/architecture/data-flow-and-adapter.md`.
 
 If the task touches UI redesign or visual components, also read
-`docs/product/interface-map-v1.md`.
+`docs/product/interface-map-v1.md`,
+`docs/product/ui-reference-direction.md`, and
+`docs/product/redesign-guardrails.md`.
 
 Confirm mentally before touching code:
 

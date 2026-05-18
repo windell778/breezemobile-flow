@@ -110,7 +110,7 @@ fue revisado y estabilizado. Comportamientos que deben mantenerse:
 1. **Pulir UX/UI** — las vistas tienen problemas de diseño que afectan la experiencia del usuario final.
 2. **Validar UTMs con tráfico real de campaña** — crear una URL con `?utm_source=facebook&utm_medium=paid_social&utm_campaign=nombre` y visitar la web. Confirmar que los campos llegan a PostHog.
 3. **Autenticación** — antes de mostrar la plataforma a clientes, necesita login.
-4. **Cloudflare R2 (opcional)** — activar para reducir latencia al abrir grabaciones. Sin R2 el sistema funciona igual pero descarga en tiempo real cada vez. Ver `docs/architecture/recordings.md §9`.
+4. **Cloudflare R2 (opcional)** — activar solo si la experiencia real lo justifica (latencia, rate limits o necesidad de cache). Sin R2 el sistema funciona igual pero descarga en tiempo real cada vez. Ver `docs/architecture/recordings.md §10`.
 
 ---
 

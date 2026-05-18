@@ -1,6 +1,6 @@
 # Grabaciones de sesión — Implementación técnica
 
-_Última actualización: 2026-05-14_
+_Última actualización: 2026-05-17_
 
 Este documento describe cómo funciona el sistema de grabaciones en la
 implementación actual, por qué se diseñó así, qué no se debe tocar y
@@ -32,6 +32,17 @@ Usuario abre grabación en la UI
 
 La API Key de PostHog **nunca llega al cliente**. Todo el acceso a
 PostHog ocurre en el servidor (route handler o server component).
+
+### Mock mode y replay real
+
+Con `DATA_SOURCE=mock`, `MockAdapter.getRecordingStreamUrl()` devuelve
+`null` de forma intencional. El mock sirve para validar estructura,
+navegación, filtros, labels y estados como "sin grabación"; **no**
+reproduce una grabación rrweb real.
+
+Las pruebas de reproducción real deben hacerse con `DATA_SOURCE=posthog`
+y una grabación existente en PostHog. No agregar eventos rrweb falsos al
+mock salvo que se diseñe explícitamente un fixture técnico para el player.
 
 ---
 
@@ -289,6 +300,12 @@ El webhook handler existe en
 descarga los eventos pero no los almacena (R2 no está configurado).
 Mientras R2 no esté activo, el sistema funciona descargando en tiempo
 real con 1-3 segundos de latencia al abrir una grabación.
+
+No hay un umbral formal de latencia para activar R2. Debe tratarse como
+optimización futura y activarse solo cuando haya evidencia real: replay
+lento para usuarios, límites/rate limits de PostHog, necesidad de cachear
+grabaciones o decisión explícita de reducir dependencia de PostHog al
+reproducir.
 
 ### ⚠️ Antes de activar R2
 

@@ -156,6 +156,9 @@ npm run build
 ```
 Con `DATA_SOURCE=posthog`: abrir una grabación real y verificar que el video se reproduce sin error en consola.
 
+Con `DATA_SOURCE=mock`, no esperar replay real: el mock valida navegación,
+filtros y estados de "sin grabación", pero no reproduce rrweb.
+
 ---
 
 ## 6. Cambiar copy de negocio (labels, textos visibles)
@@ -193,6 +196,8 @@ Revisar visualmente las vistas afectadas.
 
 **Documentos obligatorios — leer antes de tocar:**
 - `docs/product/interface-map-v1.md` — mapa completo de vistas, principios de producto, qué NO mostrar
+- `docs/product/ui-reference-direction.md` — referencias visuales permitidas y patrones a tomar/rechazar
+- `docs/product/redesign-guardrails.md` — contratos funcionales que el rediseño no puede romper
 - `docs/architecture/data-flow-and-adapter.md §15` — comportamientos visuales que deben preservarse (nota ámbar, badge "Coincide con filtro", stretched link + z-20)
 
 **Patrones que no deben romperse:**

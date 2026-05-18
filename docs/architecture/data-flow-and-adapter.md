@@ -1,6 +1,6 @@
 # Flujo de datos y DataAdapter
 
-_Última actualización: 2026-05-16_
+_Última actualización: 2026-05-17_
 
 Este documento explica cómo fluyen los datos desde PostHog hasta la UI,
 cómo está diseñado el sistema de adaptadores, y las limitaciones actuales
@@ -62,6 +62,11 @@ export function getAdapter(): DataAdapter {
 
 **Consecuencia:** cambios en `.env.local` requieren reiniciar el servidor
 (`npm run dev`). Modificar variables de entorno en caliente no tiene efecto.
+
+En `next dev`, el hot reload puede reiniciar el módulo y reconstruir
+`_adapter`. Eso es esperado y no es un problema: `_adapter` es solo una
+caché técnica por proceso, no estado persistente de negocio. No escribir
+lógica que dependa de que sobreviva a reloads, builds o reinicios.
 
 ### ⚠️ No resetear `_adapter` manualmente
 
