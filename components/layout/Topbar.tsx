@@ -4,13 +4,6 @@ export function Topbar() {
   return (
     <header className="sticky top-0 z-20 -mx-4 mb-5 border-b border-slate-200 bg-background/95 px-4 py-2 backdrop-blur md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="grid h-8 w-8 place-items-center rounded-md border border-slate-200 bg-white font-mono text-xs font-semibold text-slate-900 lg:hidden">BM</div>
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Workspace</p>
-            <p className="text-sm font-semibold text-slate-950">BreezeMobile</p>
-          </div>
-        </div>
         <div className="flex flex-1 items-center justify-end gap-3">
           <form action="/sesiones" className="hidden min-w-44 flex-1 md:block">
             <input

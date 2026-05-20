@@ -10,6 +10,8 @@ import {
 } from "@/lib/posthog/normalizer";
 import { getStorageKey } from "@/lib/storage/recordings";
 
+const RECORDINGS_DATE_FROM = "-30d";
+
 // PostHog compresses FullSnapshot (type 2) and large incremental snapshot data
 // as base64-encoded gzip. Decompress on the server so rrweb-player receives
 // plain JSON objects.
@@ -102,6 +104,7 @@ export async function fetchVisitorRecordings(
   const data = await client.get<PHRecordingsResponse>("/session_recordings/", {
     person_uuid: personUuid,
     limit: "50",
+    date_from: RECORDINGS_DATE_FROM,
   });
 
   return Promise.all(

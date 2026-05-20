@@ -101,6 +101,14 @@ Mantener estas rutas:
 Se pueden cambiar labels y agrupacion visual de navegacion, pero no
 romper deep links existentes.
 
+Nota de V1: `/grabaciones` se conserva como ruta secundaria/contextual, pero
+no debe mostrarse en la navegacion principal por defecto. La entrada principal
+a replays debe venir desde `/sesiones` ("Ver grabacion"), desde el tab
+Grabaciones de Visitor Intelligence, o desde links con scope claro como
+`/grabaciones?session=...` y `/grabaciones?service=...`. No eliminar el codigo
+del modulo sin autorizacion: la ruta sigue sirviendo para QA de replays,
+validacion tecnica y posibles flujos futuros.
+
 ### Visitor Intelligence
 
 Debe seguir aceptando:
@@ -328,4 +336,3 @@ No pedir "rediseña toda la app" en una sola tarea. Orden recomendado:
 6. `/eventos` y `/tracking`.
 
 Cada etapa debe dejar la app usable antes de pasar a la siguiente.
-

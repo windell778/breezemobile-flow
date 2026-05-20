@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Session } from "@/lib/data/types";
 import { SourceBadge } from "@/components/ui/SourceBadge";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDateTime, humanValue, shortId } from "@/lib/labels";
 import { mainEventLabel } from "@/lib/analytics";
 
@@ -9,76 +8,77 @@ type RecentSessionsProps = {
   sessions: Session[];
 };
 
-const intentBorder: Record<string, string> = {
-  Alta: "border-l-emerald-500",
-  Media: "border-l-amber-400",
-  Baja: "border-l-slate-300",
+const intentTone: Record<string, string> = {
+  Alta: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+  Media: "bg-amber-50 text-amber-700 ring-amber-100",
+  Baja: "bg-slate-50 text-slate-600 ring-slate-200",
 };
 
 export function RecentSessions({ sessions }: RecentSessionsProps) {
   return (
-    <div className="bf-panel overflow-hidden">
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+    <div className="bf-apple-table">
+      <div className="flex items-center justify-between border-b border-[var(--apple-separator)] bg-[rgba(248,248,250,0.58)] px-4 py-3">
         <h2 className="text-base font-semibold text-slate-950">Sesiones recientes</h2>
         <Link href="/sesiones" className="text-xs font-medium text-slate-500 hover:text-slate-900">
-          Ver todas →
+          Ver todas
         </Link>
       </div>
-      <div className="divide-y divide-slate-100">
+      <div className="bf-premium-table-body">
         {sessions.map((session) => (
           <article
             key={session.session_id}
-            className={`relative border-l-2 px-4 py-3 transition hover:bg-slate-50 ${
-              intentBorder[session.intent_level] ?? "border-l-slate-200"
-            }`}
+            className="bf-apple-row relative px-4 py-3"
           >
-            {/* Stretched link — z-10 covers the full row including content areas */}
             <Link
               href={`/visitantes/${session.visitor_id}?session=${session.session_id}`}
-              aria-label={`Ver visitante ${shortId(session.visitor_id)} · sesión ${shortId(session.session_id)}`}
+              aria-label={`Ver visitante ${shortId(session.visitor_id)}, sesión ${shortId(session.session_id)}`}
               className="absolute inset-0 z-10"
             />
 
-            {/* Content — pointer-events-none so clicks pass through to the stretched link */}
             <div className="pointer-events-none">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   <span
-                    className="font-mono text-xs font-semibold text-slate-500"
+                    className="bf-apple-pill font-mono"
                     title={session.session_id}
                   >
                     {shortId(session.session_id)}
                   </span>
-                  <span className="text-sm font-medium text-slate-950">
+                  <span className="truncate text-sm font-semibold text-slate-950">
                     {humanValue(session.service)}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
                   <SourceBadge source={session.source} />
-                  <StatusBadge label={`${session.intent_level} intención`} />
-                  {session.recording?.status === "available" && (
-                    // z-20 + pointer-events-auto makes Replay independently clickable
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold leading-none ring-1 ${
+                      intentTone[session.intent_level] ?? intentTone.Baja
+                    }`}
+                  >
+                    {session.intent_level} intención
+                  </span>
+                  {session.recording?.status === "available" ? (
                     <Link
                       href={`/grabaciones?session=${session.session_id}`}
-                      className="relative z-20 pointer-events-auto bf-chip border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      className="bf-apple-action pointer-events-auto relative z-20 min-h-8 text-[11px]"
                     >
                       Ver grabación
                     </Link>
-                  )}
+                  ) : null}
                 </div>
               </div>
 
-              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
-                {session.attribution.utm_campaign && (
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
+                {session.attribution.utm_campaign ? (
                   <span>
                     Campaña:{" "}
                     <span className="text-slate-700">{session.attribution.utm_campaign}</span>
                   </span>
-                )}
-                <span>{session.page_path}</span>
+                ) : null}
+                <span className="font-mono">{session.page_path}</span>
                 <span>{mainEventLabel(session)}</span>
-                <span>{formatDateTime(session.timestamp)}</span>
+                <span className="font-mono">{formatDateTime(session.timestamp)}</span>
               </div>
             </div>
           </article>

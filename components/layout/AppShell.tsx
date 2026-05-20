@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
-import { Topbar } from "./Topbar";
 
 type AppShellProps = {
   children: ReactNode;
@@ -19,13 +18,12 @@ export function AppShell({
     <div className="min-h-screen bg-background text-slate-950">
       <div className="flex min-h-screen w-full">
         {/* Sidebar — desktop only */}
-        <div className="hidden shrink-0 border-r border-slate-200 lg:block">
+        <div className="hidden shrink-0 lg:block">
           <Sidebar />
         </div>
 
         {/* Main content */}
         <div className="min-w-0 flex-1 px-4 py-4 md:px-6 lg:px-8">
-          <Topbar />
           <main className="mx-auto w-full max-w-[1500px] pb-12">
             {showPageHeader ? (
               <header className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-5">

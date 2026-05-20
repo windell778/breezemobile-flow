@@ -1,45 +1,21 @@
 import { NavLinks } from "@/components/layout/NavLinks";
 
 export function Sidebar() {
-  const isPostHog = process.env.DATA_SOURCE === "posthog";
-
   return (
-    <aside className="sticky top-0 flex h-screen w-[260px] flex-col bg-white">
-      {/* Brand */}
-      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-4">
-        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-slate-950 font-mono text-sm font-semibold text-white">
-          BM
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-slate-950">BreezeMobile</p>
-          <p className="truncate text-xs text-slate-400">Flow Intelligence</p>
-        </div>
-      </div>
-
-      {/* Nav */}
-      <div className="flex-1 overflow-y-auto px-3 py-4">
-        <NavLinks />
-      </div>
-
-      {/* Data source badge */}
-      <div className="shrink-0 border-t border-slate-200 p-3">
-        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold text-slate-700">Fuente de datos</p>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                isPostHog
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-slate-200 text-slate-600"
-              }`}
-            >
-              {isPostHog ? "PostHog" : "Mock"}
-            </span>
+    <aside className="sticky top-0 z-30 flex h-screen w-24 items-center justify-center py-5">
+      <div className="flex h-[calc(100dvh-40px)] min-h-[520px] w-16 flex-col items-center rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,#111827_0%,#111827_62%,#151a33_100%)] px-2 py-4 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.92)]">
+        <div className="group relative grid place-items-center">
+          <div className="grid size-10 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/8 font-mono text-xs font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            BM
           </div>
-          <p className="mt-1 text-[11px] leading-4 text-slate-400">
-            {isPostHog ? "Datos reales desde PostHog." : "Datos simulados, misma estructura."}{" "}
-            Tracking validado con GTM/dataLayer.
-          </p>
+          <div className="pointer-events-none absolute left-[calc(100%+12px)] top-1/2 z-50 -translate-y-1/2 -translate-x-2 whitespace-nowrap rounded-xl bg-[var(--dark-button)] px-3 py-2 text-xs font-semibold text-white opacity-0 shadow-[0_18px_38px_-24px_rgba(30,41,59,0.75)] transition-[opacity,transform] duration-200 ease-[var(--ease-out)] group-hover:translate-x-0 group-hover:opacity-100">
+            BreezeMobile
+            <span className="absolute left-0 top-1/2 size-2 -translate-x-1 -translate-y-1/2 rotate-45 bg-[var(--dark-button)]" />
+          </div>
+        </div>
+
+        <div className="mt-6 min-h-0 flex-1 overflow-visible">
+          <NavLinks />
         </div>
       </div>
     </aside>

@@ -125,6 +125,7 @@ function buildAttribution(r: Record<string, unknown>): Attribution {
 
 const EVENT_FILTER = `event IN ('page_view_custom', 'service_click', 'whatsapp_click')`;
 const SESSION_FILTER = `properties.session_id IS NOT NULL AND properties.session_id != ''`;
+const RECORDINGS_DATE_FROM = "-30d";
 
 // Fetches recent PostHog session recordings via REST API and returns a map keyed
 // by our breeze session_id (stored in person.properties.session_id via posthog.register).
@@ -147,7 +148,7 @@ async function fetchRecordingsMap(
         duration: number;
         person?: { properties?: Record<string, unknown> };
       }>;
-    }>("/session_recordings/", { limit: "200" });
+    }>("/session_recordings/", { limit: "200", date_from: RECORDINGS_DATE_FROM });
 
     for (const rec of data.results ?? []) {
       const sessionId = String(rec.person?.properties?.session_id ?? "").trim();

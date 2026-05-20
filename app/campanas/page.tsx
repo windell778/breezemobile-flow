@@ -63,8 +63,8 @@ async function AttributionTable({ dimension }: { dimension: Dimension }) {
   }
 
   return (
-    <section className="bf-panel bf-defer mt-4 overflow-hidden">
-      <div className="grid border-b border-slate-200 bg-slate-50/80 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 md:grid-cols-[1.2fr_120px_100px_120px_120px_110px_120px]">
+    <section className="bf-apple-table bf-defer mt-4">
+      <div className="bf-apple-table-header grid px-4 py-3 md:grid-cols-[1.2fr_120px_100px_120px_120px_110px_120px]">
         <span>Dimensión</span>
         <span>Fuente</span>
         <span>Sesiones</span>
@@ -73,12 +73,13 @@ async function AttributionTable({ dimension }: { dimension: Dimension }) {
         <span>% WhatsApp</span>
         <span>Señal</span>
       </div>
+      <div className="bf-premium-table-body">
       {rows.map((row) => {
         const signal = signalLabel(row.whatsappClicks, row.sessions);
         return (
           <article
             key={row.key}
-            className="bf-row grid gap-3 px-3 py-2.5 text-sm md:grid-cols-[1.2fr_120px_100px_120px_120px_110px_120px] md:items-center"
+            className="bf-apple-row grid gap-3 px-4 py-3 text-sm md:grid-cols-[1.2fr_120px_100px_120px_120px_110px_120px] md:items-center"
           >
             <div>
               <p className="font-semibold text-slate-950">{row.label}</p>
@@ -92,25 +93,26 @@ async function AttributionTable({ dimension }: { dimension: Dimension }) {
               {row.rate}%
               <Link
                 href={buildSessionsHref(dimension, row)}
-                className="mt-1 block text-xs font-medium text-blue-700 hover:underline"
+                className="mt-1 block text-xs font-medium text-[var(--apple-blue)] hover:underline"
               >
                 Ver sesiones
               </Link>
             </span>
-            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${signal.cls}`}>
+            <span className={`bf-apple-pill ${signal.cls}`}>
               {signal.label}
             </span>
           </article>
         );
       })}
+      </div>
     </section>
   );
 }
 
 function AttributionTableLoading() {
   return (
-    <section className="bf-panel bf-defer mt-4 overflow-hidden">
-      <div className="grid border-b border-slate-200 bg-slate-50/80 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 md:grid-cols-[1.2fr_120px_100px_120px_120px_110px_120px]">
+    <section className="bf-apple-table bf-defer mt-4">
+      <div className="bf-apple-table-header grid px-4 py-3 md:grid-cols-[1.2fr_120px_100px_120px_120px_110px_120px]">
         <span>Dimensión</span>
         <span>Fuente</span>
         <span>Sesiones</span>
@@ -119,16 +121,18 @@ function AttributionTableLoading() {
         <span>% WhatsApp</span>
         <span>Señal</span>
       </div>
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="animate-pulse border-b border-slate-100 px-3 py-3">
-          <div className="flex gap-4">
-            <div className="h-4 w-32 rounded bg-slate-200" />
-            <div className="h-4 w-20 rounded bg-slate-200" />
-            <div className="h-4 w-16 rounded bg-slate-200" />
-            <div className="h-4 w-16 rounded bg-slate-200" />
+      <div className="bf-premium-table-body">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="bf-apple-row animate-pulse px-4 py-4">
+            <div className="flex gap-4">
+              <div className="h-4 w-32 rounded bg-slate-200" />
+              <div className="h-4 w-20 rounded bg-slate-200" />
+              <div className="h-4 w-16 rounded bg-slate-200" />
+              <div className="h-4 w-16 rounded bg-slate-200" />
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </section>
   );
 }

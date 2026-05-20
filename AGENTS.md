@@ -19,6 +19,7 @@ Full change protocol: `docs/development/change-protocol.md`
 **Entry-layer documentation (read first if new to this project):**
 - `docs/product/ui-reference-direction.md` - visual references and product-specific UI direction
 - `docs/product/redesign-guardrails.md` - what redesign can change and what it must not break
+- `docs/product/visual-system-v0.md` - reusable visual rules for panels, tables, filters, states, density
 - `docs/development/ai-handoff-guide.md` — condensed rules and reading order for IA or new dev
 - `README.md` — what the project is, how to run it, routes, critical rules
 - `docs/architecture/system-map.md` — full data flow from site to UI
@@ -53,7 +54,8 @@ also read `docs/architecture/data-flow-and-adapter.md`.
 If the task touches UI redesign or visual components, also read
 `docs/product/interface-map-v1.md`,
 `docs/product/ui-reference-direction.md`, and
-`docs/product/redesign-guardrails.md`.
+`docs/product/redesign-guardrails.md`, and
+`docs/product/visual-system-v0.md`.
 
 Confirm mentally before touching code:
 

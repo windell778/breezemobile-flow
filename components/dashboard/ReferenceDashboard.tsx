@@ -18,40 +18,40 @@ type ReferenceDashboardProps = {
 
 const rankStyles = [
   {
-    tone: "text-blue-700",
-    bg: "bg-blue-50",
-    border: "border-blue-100",
-    icon: "bg-[#eef5ff] text-blue-600",
+    accent: "text-sky-700",
+    soft: "bg-sky-50",
+    ring: "ring-sky-100",
+    dot: "bg-sky-500",
   },
   {
-    tone: "text-emerald-700",
-    bg: "bg-emerald-50",
-    border: "border-emerald-100",
-    icon: "bg-[#eafaf0] text-emerald-600",
+    accent: "text-emerald-700",
+    soft: "bg-emerald-50",
+    ring: "ring-emerald-100",
+    dot: "bg-emerald-500",
   },
   {
-    tone: "text-orange-700",
-    bg: "bg-orange-50",
-    border: "border-orange-100",
-    icon: "bg-[#fff3e4] text-orange-500",
+    accent: "text-amber-700",
+    soft: "bg-amber-50",
+    ring: "ring-amber-100",
+    dot: "bg-amber-500",
   },
   {
-    tone: "text-violet-700",
-    bg: "bg-violet-50",
-    border: "border-violet-100",
-    icon: "bg-[#f2efff] text-violet-600",
+    accent: "text-indigo-700",
+    soft: "bg-indigo-50",
+    ring: "ring-indigo-100",
+    dot: "bg-indigo-500",
   },
   {
-    tone: "text-teal-700",
-    bg: "bg-teal-50",
-    border: "border-teal-100",
-    icon: "bg-[#e9fbfa] text-teal-600",
+    accent: "text-teal-700",
+    soft: "bg-teal-50",
+    ring: "ring-teal-100",
+    dot: "bg-teal-500",
   },
   {
-    tone: "text-pink-700",
-    bg: "bg-pink-50",
-    border: "border-pink-100",
-    icon: "bg-[#fff0f5] text-pink-600",
+    accent: "text-rose-700",
+    soft: "bg-rose-50",
+    ring: "ring-rose-100",
+    dot: "bg-rose-500",
   },
 ];
 
@@ -78,9 +78,9 @@ function sessionHasWhatsApp(session: Session) {
   return session.events.some((event) => event.event_name === "whatsapp_click");
 }
 
-function CameraIcon() {
+function CameraIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 13.5V7.25A1.75 1.75 0 0 1 5.75 5.5h7.5A1.75 1.75 0 0 1 15 7.25v9.5a1.75 1.75 0 0 1-1.75 1.75h-7.5A1.75 1.75 0 0 1 4 16.75v-1" />
       <path strokeLinecap="round" strokeLinejoin="round" d="m15 9 5-2.75v11.5L15 15" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M8 10.5h3" />
@@ -88,9 +88,9 @@ function CameraIcon() {
   );
 }
 
-function PageIcon() {
+function PageIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
       <path strokeLinecap="round" strokeLinejoin="round" d="M7 3.75h6.25L18 8.5v11.75H7z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M13 3.75V9h5" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 13h5M9.5 16h5" />
@@ -98,26 +98,26 @@ function PageIcon() {
   );
 }
 
-function WhatsAppIcon() {
+function WhatsAppIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor">
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
       <path d="M12.04 2.5a9.45 9.45 0 0 0-8.02 14.43L3 21l4.18-1.1a9.44 9.44 0 0 0 4.85 1.34h.01A9.38 9.38 0 0 0 21.5 11.9a9.44 9.44 0 0 0-9.46-9.4Zm5.57 13.32c-.24.68-1.4 1.3-1.95 1.35-.5.05-1.12.08-1.8-.12-.42-.13-.96-.31-1.65-.6-2.9-1.25-4.78-4.15-4.93-4.34-.14-.2-1.18-1.57-1.18-3s.75-2.13 1.02-2.42c.26-.29.58-.36.77-.36h.56c.18.01.42-.07.66.5.24.58.82 2 .89 2.14.07.15.12.32.02.51-.1.2-.15.32-.29.49-.14.17-.31.38-.44.51-.15.15-.3.31-.13.61.17.29.75 1.23 1.6 2 .98.87 1.8 1.14 2.1 1.27.29.15.46.12.63-.07.2-.22.73-.85.92-1.14.19-.29.39-.24.65-.15.27.1 1.7.8 1.99.95.29.14.48.22.56.34.07.12.07.7-.17 1.37Z" />
     </svg>
   );
 }
 
-function ServiceIcon() {
+function ServiceIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2">
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h16M7 7h10M8 17h8" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 12a6 6 0 0 1 12 0M8.5 17a4.5 4.5 0 0 0 7 0" />
     </svg>
   );
 }
 
-function TrendIcon() {
+function TrendIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4">
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2.2">
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 17 9 12l3 3 7-8" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 7h4v4" />
     </svg>
@@ -133,10 +133,27 @@ function DashboardCard({
 }) {
   return (
     <section
-      className={`min-w-0 rounded-[22px] border border-slate-200/80 bg-white/95 shadow-[0_18px_44px_rgba(15,23,42,0.075),inset_0_1px_0_rgba(255,255,255,0.9)] ${className}`}
+      className={`min-w-0 rounded-[18px] border border-slate-200/75 bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] shadow-[0_1px_0_rgba(15,23,42,0.04),0_18px_52px_-36px_rgba(15,23,42,0.36)] ${className}`}
     >
       {children}
     </section>
+  );
+}
+
+function SectionTitle({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div>
+      <h2 className="text-[18px] font-semibold leading-6 tracking-[-0.025em] text-slate-950 md:text-[20px]">
+        {title}
+      </h2>
+      <p className="mt-1 text-[13px] leading-5 text-slate-500">{subtitle}</p>
+    </div>
   );
 }
 
@@ -145,20 +162,18 @@ function CustomerFlowCard({ metrics }: { metrics: DashboardMetrics }) {
   const sourceDrop = metrics.sessions > 0 ? Math.max(0, 100 - waRate(metrics.serviceClicks, metrics.sessions)) : 0;
 
   return (
-    <DashboardCard className="p-6">
-      <div className="mb-5">
-        <h2 className="flex items-center gap-2 text-[21px] font-extrabold tracking-[-0.035em] text-slate-950">
-          Flujo del cliente
-          <span className="grid h-5 w-5 place-items-center rounded-full border border-slate-300 text-[11px] font-bold text-slate-500">
-            i
-          </span>
-        </h2>
-        <p className="mt-1 text-[14px] font-medium text-slate-500">
-          Seguimiento del recorrido desde campaña o fuente hasta WhatsApp
-        </p>
+    <DashboardCard className="p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <SectionTitle
+          title="Flujo del cliente"
+          subtitle="Recorrido desde campaña o fuente hasta contacto por WhatsApp."
+        />
+        <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-500">
+          Señal anónima
+        </span>
       </div>
 
-      <div className="flex items-center max-md:flex-col max-md:items-stretch max-md:gap-3">
+      <div className="mt-5 grid items-center gap-3 md:grid-cols-[minmax(0,1fr)_58px_minmax(0,1fr)_58px_minmax(0,1fr)]">
         <FlowNode
           icon={<CameraIcon />}
           title="Campañas"
@@ -186,20 +201,20 @@ function CustomerFlowCard({ metrics }: { metrics: DashboardMetrics }) {
         />
       </div>
 
-      <div className="mt-7 flex items-center justify-between gap-4 max-md:flex-col max-md:items-start">
-        <div className="flex flex-wrap items-center gap-x-7 gap-y-2 text-[13px] font-medium text-slate-600">
-          <div className="flex items-center gap-3">
-            <span className="h-[3px] w-6 rounded-full bg-blue-600" />
+      <div className="mt-4 flex items-center justify-between gap-4 border-t border-slate-100 pt-3.5 max-md:flex-col max-md:items-start">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] font-medium text-slate-500">
+          <div className="flex items-center gap-2.5">
+            <span className="h-[3px] w-7 rounded-full bg-blue-600" />
             <span>Flujo activo</span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="h-px w-8 border-t-2 border-dashed border-slate-300" />
-            <span>Pérdida de usuarios</span>
+          <div className="flex items-center gap-2.5">
+            <span className="h-px w-8 border-t border-dashed border-slate-300" />
+            <span>Pérdida entre pasos</span>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <span className="text-[14px] font-medium text-slate-600">Tasa WA</span>
-          <span className="text-[22px] font-extrabold tracking-[-0.04em] text-emerald-600">
+        <div className="flex shrink-0 items-baseline gap-2">
+          <span className="text-[12px] font-medium text-slate-500">Tasa WA</span>
+          <span className="font-mono text-[23px] font-semibold tracking-[-0.04em] text-emerald-600">
             {pageToWhatsapp}%
           </span>
         </div>
@@ -225,43 +240,41 @@ function FlowNode({
   highlighted?: boolean;
   green?: boolean;
 }) {
+  const activeClasses = green
+    ? "border-emerald-200 bg-emerald-50/45 text-emerald-700 shadow-[0_14px_34px_-28px_rgba(5,150,105,0.75)]"
+    : highlighted
+      ? "border-blue-300 bg-blue-50/35 text-blue-700 shadow-[0_14px_34px_-28px_rgba(37,99,235,0.75)]"
+      : "border-slate-200 bg-white text-blue-700";
+
   return (
     <Link
       href={href}
-      className={`relative z-10 flex h-[116px] min-w-0 flex-1 items-center gap-4 rounded-[19px] border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md max-md:w-full max-md:flex-none ${
-        highlighted
-          ? "border-blue-600 shadow-[0_10px_28px_rgba(37,99,235,0.12)]"
-          : green
-            ? "border-emerald-300"
-            : "border-slate-200"
-      }`}
+      className={`group relative min-h-[94px] rounded-[16px] border p-4 transition-[border-color,box-shadow,transform,background-color] duration-200 ease-[var(--ease-out)] hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_34px_-28px_rgba(15,23,42,0.55)] ${activeClasses}`}
     >
-      <span
-        className={`grid h-14 w-14 shrink-0 place-items-center rounded-full ${
-          green ? "bg-emerald-50 text-emerald-500" : "bg-blue-50 text-blue-600"
-        }`}
-      >
-        {icon}
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate text-[16px] font-extrabold tracking-[-0.03em] text-slate-950">{title}</span>
-        <span className="mt-0.5 block text-[13px] font-medium leading-5 text-slate-500">{label}</span>
-        <span className="mt-0.5 block text-[24px] font-extrabold tracking-[-0.045em] text-slate-950">
+      <div className="flex items-start justify-between gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-white/80 ring-1 ring-inset ring-slate-200/75">
+          {icon}
+        </span>
+        <span className="font-mono text-[24px] font-semibold leading-none tracking-[-0.055em] text-slate-950">
           {formatNumber(value)}
         </span>
-      </span>
+      </div>
+      <div className="mt-3 min-w-0">
+        <span className="block text-[14px] font-semibold tracking-[-0.02em] text-slate-950">{title}</span>
+        <span className="mt-0.5 block text-[12px] leading-5 text-slate-500">{label}</span>
+      </div>
     </Link>
   );
 }
 
 function FlowConnector({ value }: { value: number }) {
   return (
-    <div className="relative h-[3px] w-[58px] shrink-0 bg-blue-600 max-md:hidden">
-      <span className="absolute left-1/2 top-1/2 grid h-6 w-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[3px] border-blue-600 bg-white">
-        <span className="h-2.5 w-[3px] rounded-full bg-blue-600" />
+    <div className="relative hidden h-[2px] bg-blue-500 md:block">
+      <span className="absolute left-1/2 top-1/2 grid h-5 w-5 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-blue-500 bg-white">
+        <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
       </span>
-      <span className="absolute left-1/2 top-[28px] inline-flex -translate-x-1/2 items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-[12px] font-bold text-violet-700">
-        ↓ {value}%
+      <span className="absolute left-1/2 top-[18px] inline-flex -translate-x-1/2 items-center rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-500">
+        {value}%
       </span>
     </div>
   );
@@ -271,9 +284,9 @@ function TopServicesCard({ services }: { services: ServicePageSummary[] }) {
   const visible = services.slice(0, 4);
 
   return (
-    <DashboardCard className="p-5">
-      <RankedHeader title="Servicios con más señales" subtitle="Tasa WA por servicio" average={weightedWaRate(visible)} compact />
-      <div className="mt-4 overflow-hidden rounded-[16px] border border-slate-200 bg-white/70">
+    <DashboardCard className="p-4">
+      <RankedHeader title="Servicios con más señales" subtitle="Tasa WA por servicio" average={weightedWaRate(visible)} />
+      <div className="bf-apple-table mt-3">
         {visible.map((service, index) => (
           <RankedRow
             key={service.path}
@@ -283,7 +296,6 @@ function TopServicesCard({ services }: { services: ServicePageSummary[] }) {
             subtitle={servicePath(service)}
             href={`/sesiones?service=${service.service}`}
             value={waRate(service.whatsapp_clicks, service.sessions)}
-            compact
           />
         ))}
       </div>
@@ -295,9 +307,9 @@ function TopCampaignsCard({ campaigns }: { campaigns: CampaignSummary[] }) {
   const visible = campaigns.slice(0, 6);
 
   return (
-    <DashboardCard className="p-5">
-      <RankedHeader title="Campañas con más señales" subtitle="Tasa WA por campaña" average={weightedWaRate(visible)} compact />
-      <div className="mt-4 overflow-hidden rounded-[16px] border border-slate-200 bg-white/70">
+    <DashboardCard className="p-4">
+      <RankedHeader title="Campañas con más señales" subtitle="Tasa WA por campaña" average={weightedWaRate(visible)} />
+      <div className="bf-apple-table mt-3">
         {visible.map((campaign, index) => (
           <RankedRow
             key={`${campaign.source}-${campaign.name}-${campaign.medium}`}
@@ -307,7 +319,6 @@ function TopCampaignsCard({ campaigns }: { campaigns: CampaignSummary[] }) {
             subtitle={`${campaign.source} / ${campaign.medium || "Sin medio"}`}
             href={`/sesiones?campaign=${encodeURIComponent(campaign.name)}`}
             value={waRate(campaign.whatsapp_clicks, campaign.sessions)}
-            compact
           />
         ))}
       </div>
@@ -319,24 +330,19 @@ function RankedHeader({
   title,
   subtitle,
   average,
-  compact = false,
 }: {
   title: string;
   subtitle: string;
   average: number;
-  compact?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <div className="min-w-0">
-        <h2 className={`${compact ? "max-w-[230px] text-[20px]" : "text-[22px]"} font-extrabold tracking-[-0.04em] text-slate-950`}>{title}</h2>
-        <p className="mt-1 text-[13px] font-medium text-slate-500">{subtitle}</p>
-      </div>
-      <div className="flex h-[52px] shrink-0 items-center gap-3 rounded-[14px] border border-emerald-100 bg-emerald-50 px-4 text-emerald-700 max-sm:w-full">
+    <div className="flex items-start justify-between gap-4">
+      <SectionTitle title={title} subtitle={subtitle} />
+      <div className="flex h-[46px] shrink-0 items-center gap-2 rounded-[13px] border border-emerald-100 bg-emerald-50 px-3 text-emerald-700">
         <TrendIcon />
         <span>
-          <span className="block text-[11px] font-semibold leading-none text-slate-500">Promedio</span>
-          <span className="mt-1 block text-[18px] font-extrabold leading-none">{average}%</span>
+          <span className="block text-[10px] font-semibold leading-none text-emerald-800/60">Promedio</span>
+          <span className="mt-1 block font-mono text-[17px] font-semibold leading-none">{average}%</span>
         </span>
       </div>
     </div>
@@ -350,7 +356,6 @@ function RankedRow({
   subtitle,
   href,
   value,
-  compact = false,
 }: {
   rank: number;
   icon: React.ReactNode;
@@ -358,24 +363,25 @@ function RankedRow({
   subtitle: string;
   href: string;
   value: number;
-  compact?: boolean;
 }) {
   const style = rankStyles[(rank - 1) % rankStyles.length];
 
   return (
     <Link
       href={href}
-      className={`grid ${compact ? "min-h-[50px] grid-cols-[40px_28px_minmax(0,1fr)_62px]" : "min-h-[62px] grid-cols-[48px_30px_minmax(0,1fr)_70px]"} items-center gap-3 border-b border-slate-100 px-3 last:border-b-0 hover:bg-slate-50`}
+      className="bf-apple-row group grid min-h-[52px] grid-cols-[32px_24px_minmax(0,1fr)_64px] items-center gap-3 border-b border-[var(--apple-separator)] px-3 last:border-b-0"
     >
-      <span className={`grid ${compact ? "h-9 w-9" : "h-10 w-10"} place-items-center rounded-full ${style.icon}`}>{icon}</span>
-      <span className={`grid h-6 w-6 place-items-center rounded-full border text-xs font-extrabold ${style.bg} ${style.border} ${style.tone}`}>
+      <span className={`grid h-8 w-8 place-items-center rounded-[10px] ${style.soft} ${style.accent}`}>
+        {icon}
+      </span>
+      <span className={`grid h-6 w-6 place-items-center rounded-full text-[11px] font-semibold ${style.soft} ${style.accent} ring-1 ${style.ring}`}>
         {rank}
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-[13px] font-extrabold tracking-[-0.03em] text-slate-950">{title}</span>
-        <span className="mt-0.5 block truncate font-mono text-[11px] font-medium text-slate-500">{subtitle}</span>
+        <span className="block truncate text-[13px] font-semibold tracking-[-0.02em] text-slate-900">{title}</span>
+        <span className="mt-0.5 block truncate font-mono text-[11px] text-slate-500">{subtitle}</span>
       </span>
-      <span className={`justify-self-end rounded-[10px] border px-2.5 py-2 text-[13px] font-extrabold ${style.bg} ${style.border} ${style.tone}`}>
+      <span className={`justify-self-end rounded-full px-2.5 py-1.5 text-right font-mono text-[13px] font-semibold ${style.soft} ${style.accent} ring-1 ${style.ring}`}>
         {value}%
       </span>
     </Link>
@@ -386,17 +392,22 @@ function RecentActivityCard({ sessions }: { sessions: Session[] }) {
   const visible = sessions.slice(0, 7);
 
   return (
-    <DashboardCard className="overflow-hidden p-6">
-      <div>
-        <h2 className="text-[24px] font-extrabold tracking-[-0.04em] text-slate-950">Actividad reciente</h2>
-        <p className="mt-1 text-[14px] font-medium text-slate-500">Sesiones recientes</p>
+    <DashboardCard className="overflow-hidden p-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <SectionTitle title="Actividad reciente" subtitle="Sesiones recientes con contexto de fuente, página y replay." />
+        <Link
+          href="/sesiones"
+          className="bf-apple-secondary-action"
+        >
+          Ver todas
+        </Link>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-[18px] border border-slate-200 bg-white">
+      <div className="bf-apple-table mt-3">
         {visible.map((session) => (
           <article
             key={session.session_id}
-            className="relative grid min-h-[48px] grid-cols-[120px_minmax(0,1fr)_62px_104px] items-center gap-3 border-b border-slate-100 px-4 last:border-b-0 hover:bg-slate-50 max-md:grid-cols-[1fr_auto] max-md:py-3"
+            className="bf-apple-row relative grid min-h-[52px] grid-cols-[118px_minmax(0,1fr)_58px_102px] items-center gap-3 border-b border-[var(--apple-separator)] px-4 last:border-b-0 max-md:grid-cols-[1fr_auto] max-md:py-3"
           >
             <Link
               href={`/visitantes/${session.visitor_id}?session=${session.session_id}`}
@@ -407,14 +418,14 @@ function RecentActivityCard({ sessions }: { sessions: Session[] }) {
               <SourceBadge source={session.source} />
             </div>
             <div className="pointer-events-none min-w-0">
-              <p className="truncate text-[13px] font-extrabold tracking-[-0.035em] text-slate-950">
+              <p className="truncate text-[13px] font-semibold tracking-[-0.02em] text-slate-900">
                 {humanValue(session.service)}
               </p>
-              <p className="mt-0.5 truncate font-mono text-[11px] font-medium text-slate-500">{session.page_path}</p>
+              <p className="mt-0.5 truncate font-mono text-[11px] text-slate-500">{session.page_path}</p>
             </div>
             <div className="pointer-events-none">
               {sessionHasWhatsApp(session) ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[12px] font-extrabold text-emerald-700">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-100">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   WA
                 </span>
@@ -424,14 +435,14 @@ function RecentActivityCard({ sessions }: { sessions: Session[] }) {
               {session.recording?.status === "available" ? (
                 <Link
                   href={`/grabaciones?session=${session.session_id}`}
-                  className="inline-flex h-8 items-center rounded-[10px] border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-600 shadow-sm hover:bg-slate-50"
+                  className="bf-apple-action h-8 px-3 text-[12px]"
                 >
                   Grabación
                 </Link>
               ) : (
                 <span
                   title={formatDateTime(session.timestamp)}
-                  className="inline-flex h-8 items-center rounded-[10px] border border-slate-100 bg-slate-50 px-3 text-[12px] font-semibold text-slate-400"
+                  className="bf-apple-secondary-action h-8 px-3 text-[12px] text-[var(--apple-tertiary-label)]"
                 >
                   Sin replay
                 </span>
@@ -439,12 +450,6 @@ function RecentActivityCard({ sessions }: { sessions: Session[] }) {
             </div>
           </article>
         ))}
-      </div>
-
-      <div className="mt-4 flex justify-end">
-        <Link href="/sesiones" className="text-[13px] font-bold text-slate-500 hover:text-slate-900">
-          Ver todas las sesiones →
-        </Link>
       </div>
     </DashboardCard>
   );
@@ -458,7 +463,7 @@ export function ReferenceDashboard({
 }: ReferenceDashboardProps) {
   return (
     <div className="mx-auto max-w-[1500px]">
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.48fr)]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(350px,0.46fr)]">
         <CustomerFlowCard metrics={metrics} />
         <TopServicesCard services={services} />
       </div>

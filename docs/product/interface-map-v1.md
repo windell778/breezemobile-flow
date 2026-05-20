@@ -30,13 +30,32 @@ _Creado: 2026-05-16_
 |---|---|---|---|---|---|---|
 | Resumen general | `/` | Operación | Centro de mando: KPIs, sesiones recientes, campaña top, servicio top, alerta de tracking | ¿Qué está pasando ahora en la web? | `getDashboardMetrics`, `listSessions` (últimas 6), `getTrackingHealth`, `getCampaignSummaries`, `getServiceSummaries` | Mostrarse como BI; mostrar revenue o ROAS; ocultar alertas de tracking |
 | Sesiones | `/sesiones` | Comportamiento | Lista navegable de todas las sesiones con filtros y acceso a Visitor Intelligence | ¿Qué visitantes hubo, de dónde vinieron, qué hicieron? | `listSessions` + `SessionFilters` | Mostrar sesiones sin contexto de acceso a visitante; perder filtros al paginar |
-| Grabaciones | `/grabaciones` | Comportamiento | Vista top-level de replay: explorar grabaciones por servicio sin conocer el visitante | ¿Qué hizo concretamente alguien en el sitio? | `listSessions` (scope de servicio), `getRecordingStreamUrl` | Mostrar sesiones de otro servicio como fallback; reproducir sin grabación disponible |
 | Campañas | `/campanas` | Atribución | Tabla comparativa por dimensión (fuente/medio/campaña/anuncio) con señal WA | ¿Qué campañas y fuentes generan más señal de intención? | `getCampaignSummaries`, `listSessions` | Llamar a WA clicks "conversiones confirmadas"; perder filtro al cambiar dimensión |
 | Servicios | `/servicios` | Atribución | Cards por servicio con mini-funnel de sesiones → clicks → WA | ¿Qué servicios interesan más a los visitantes? | `getServiceSummaries` | Confundir service_clicks con ventas; mostrar solo session.service sin evento-scope |
 | Eventos | `/eventos` | Sistema | Lista cruda de eventos con filtro por tipo; cada fila enlaza al visitante | ¿Qué acciones individuales se capturaron y en qué sesión? | `listEvents` + `EventFilters` | Mostrar event_name técnico como label principal; enlazar sin sesión activa |
 | Estado del tracking | `/tracking` | Sistema | Diagnóstico técnico: alertas, severidad, referencia de eventos/campos/integraciones | ¿Está llegando el tracking correctamente? | `getTrackingHealth`, datos estáticos de referencia | Confundir alertas de tracking con alertas comerciales; mostrar a usuarios no técnicos como vista principal |
 
 **Visitor Intelligence** (`/visitantes/[visitorId]`) no vive en la navegación principal. Se accede siempre con contexto: desde una fila de sesión, un evento, o una grabación. Esto es correcto: un visitante sin sesión activa no tiene sentido de entrada.
+
+### Rutas secundarias conservadas fuera de la navegación principal
+
+`/grabaciones` existe y debe conservarse, pero no vive en el sidebar/topbar
+principal de V1. La razón de producto es que la grabación no es una entidad
+operativa independiente en la fase actual: es evidencia de una sesión o de un
+visitante. El flujo principal debe ser:
+
+- `/sesiones` → acción "Ver grabación" cuando una sesión tenga replay;
+- `/visitantes/[visitorId]?session=...&tab=grabaciones` → tab Grabaciones
+  con la sesión activa preservada;
+- links contextuales desde dashboard o servicios cuando ya existe un scope
+  claro (`/grabaciones?session=...` o `/grabaciones?service=...`).
+
+No borrar `/grabaciones`, `app/grabaciones/page.tsx` ni
+`components/recordings/GrabacionesReplaySection.tsx` sin autorización. La ruta
+queda como vista secundaria para inspección contextual, QA de replays,
+validación técnica y posibles flujos futuros como cola de replays, sesiones
+revisadas o auditoría UX. Quitarla del nav reduce ruido y evita duplicar el
+trabajo que ya ocurre mejor desde Sesiones y Visitor Intelligence.
 
 ---
 

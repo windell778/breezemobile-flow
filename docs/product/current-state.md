@@ -24,7 +24,7 @@ Fase 0 (tracking confiable) está parcialmente validada:
 | Eventos (`/eventos`) | ✅ Lista eventos reales con conteos por tipo |
 | Campañas (`/campanas`) | ✅ Carga desde listSessions, agrupa por dimensión |
 | Servicios (`/servicios`) | ✅ Carga desde getServiceSummaries vía HogQL |
-| Grabaciones (`/grabaciones`) | ✅ Lista grabaciones reales + player rrweb funcional en tiempo real |
+| Grabaciones (`/grabaciones`) | ✅ Ruta secundaria conservada: lista grabaciones reales + player rrweb funcional en tiempo real. No aparece en la navegación principal de V1; se entra desde Sesiones, Visitor Intelligence o links contextuales |
 | Tracking Health (`/tracking`) | ✅ Señales reales desde PostHog con `DATA_SOURCE=posthog` (golden 900s); mock estático con `DATA_SOURCE=mock` |
 | Visitor Intelligence (`/visitantes/[id]`) | ✅ Carga resumen, sesiones, journey, eventos, atribución, técnico, grabaciones |
 | Diagnóstico (`/api/diagnostics/posthog`) | ✅ Valida conexión PostHog en tiempo real |
@@ -102,6 +102,11 @@ fue revisado y estabilizado. Comportamientos que deben mantenerse:
 - **Notas y badges de servicio** — cuando una sesión entra al filtro por eventos (no por servicio
   principal), la UI muestra "Incluye eventos de X" y el timeline marca "Coincide con filtro".
   Ver `docs/architecture/data-flow-and-adapter.md §15.3–15.4`.
+- **Grabaciones fuera de navegación principal** — `/grabaciones` sigue existiendo, pero se quitó
+  del sidebar/topbar principal porque en V1 la grabación es contexto de una sesión o visitante,
+  no un módulo operativo independiente. No borrar la ruta ni los componentes de replay: se usan
+  desde links contextuales, QA de replays y posibles flujos futuros. Ver
+  `docs/product/interface-map-v1.md` → "Rutas secundarias conservadas fuera de la navegación principal".
 
 ---
 
